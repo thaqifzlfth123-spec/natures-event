@@ -1,7 +1,7 @@
 import os
 import base64
-from groq import AsyncGroq
-from dotenv import load_dotenv
+from groq import AsyncGroq # pyright: ignore[reportMissingImports]
+from dotenv import load_dotenv # type: ignore
 
 load_dotenv()
 
@@ -12,16 +12,19 @@ api_key = os.getenv("GROQ_API_KEY")
 # but we explicitly pass it here just in case.
 client = AsyncGroq(api_key=api_key) if api_key else None
 
-async def check_flood_risk(location: str, rain_data: str):
+async def check_hazard_risk(location: str, weather_data: str):
     if not client:
-        return "High", "Mocked response (No GROQ_API_KEY set in .env): High risk due to heavy rainfall in your area."
+        return "None", "High", "Mocked response (No GROQ_API_KEY): High risk due to simulated extreme conditions."
         
     try:
         prompt = f"""
-        Given the location {location} and weather: {rain_data},
-        determine flood risk (Low, Medium, High) and explain briefly.
+        Given the location {location} and current weather: {weather_data},
+        determine the primary natural hazard risk (e.g., Flood, Heatwave, Drought, Storm, Wildfire, or None)
+        and the overall risk level (Low, Medium, High). 
+        * Note: For Wildfire risk, emulate the MET Malaysia FDRS (Fire Danger Rating System) by carefully analyzing if the temperature is high, humidity is very low, and winds are strong. Explain briefly.
 
         Format:
+        Hazard: <hazard_type>
         Risk: <level>
         Explanation: <text>
         """
@@ -35,15 +38,18 @@ async def check_flood_risk(location: str, rain_data: str):
         text = response.choices[0].message.content
 
         risk_level = "Unknown"
+        primary_hazard = "None"
         explanation = text
 
         for line in text.split("\n"):
             if "Risk:" in line:
                 risk_level = line.replace("Risk:", "").strip()
+            elif "Hazard:" in line:
+                primary_hazard = line.replace("Hazard:", "").strip()
             elif "Explanation:" in line:
                 explanation = line.replace("Explanation:", "").strip()
 
-        return risk_level, explanation
+        return primary_hazard, risk_level, explanation
 
     except Exception as e:
         return "Unknown", f"Error connecting to AI: {str(e)}"
@@ -56,7 +62,7 @@ async def get_chatbot_response(message: str):
         response = await client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a flood emergency assistant specifically for users in Malaysia. Always provide Malaysian emergency numbers (e.g., 999 for Police/Ambulance, 994 for Fire and Rescue/Bomba, and NADMA) and tailor all advice to the Malaysian context. Provide helpful, concise safety advice."},
+                {"role": "system", "content": "You are a National Emergency Assistant specifically for users in Malaysia. Always provide Malaysian emergency numbers (e.g., 999 for Police/Ambulance, 994 for Fire and Rescue/Bomba, and NADMA) and tailor all advice to the Malaysian context for ANY natural disaster (Flood, Fire, Storm, etc). Provide helpful, concise safety advice."},
                 {"role": "user", "content": message}
             ],
             temperature=0.7,
@@ -65,17 +71,14 @@ async def get_chatbot_response(message: str):
     except Exception as e:
         return f"Error: {str(e)}"
 
-async def analyze_flood_image(image_bytes: bytes, location: str, content_type: str):
+async def analyze_hazard_image(image_bytes: bytes, location: str, content_type: str):
     if not client:
-        return "High", f"Mocked analysis (No GROQ_API_KEY set in .env): The reported flood at {location} appears severe based on the uploaded image."
+        return "Unknown", "High", f"Mocked analysis (No GROQ_API_KEY set in .env): The reported hazard at {location} appears severe."
         
     try:
-        # Note: Gemma models do not natively support analyzing images (vision) on Groq yet. 
-        # If your hackathon strictly requires Gamma, this specific 'bonus' feature might need 
-        # to be swapped out or use a different compatible vision model!
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         
-        prompt = f"Analyze flood severity at {location} based on this image. Return exactly in this format:\nSeverity: <level>\nAnalysis: <text>"
+        prompt = f"Analyze this image from {location} for any natural hazards (Flood, Fire, Storm damage, Drought). Return exactly in this format:\nHazard: <hazard_type>\nSeverity: <level>\nAnalysis: <text>"
 
         response = await client.chat.completions.create(
             # Leaving this as a Llama vision model because Gemma has no vision parameters.
@@ -100,15 +103,18 @@ async def analyze_flood_image(image_bytes: bytes, location: str, content_type: s
         text = response.choices[0].message.content
 
         severity = "Unknown"
+        hazard = "Unknown"
         analysis = text
 
         for line in text.split("\n"):
             if "Severity:" in line:
                 severity = line.replace("Severity:", "").strip()
+            elif "Hazard:" in line:
+                hazard = line.replace("Hazard:", "").strip()
             elif "Analysis:" in line:
                 analysis = line.replace("Analysis:", "").strip()
 
-        return severity, analysis
+        return hazard, severity, analysis
 
     except Exception as e:
-        return "Medium", "Image analysis currently unavailable. Please verify manually."
+        return "Unknown", "Medium", "Image analysis currently unavailable. Please verify manually."

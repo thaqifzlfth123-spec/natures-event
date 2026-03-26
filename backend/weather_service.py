@@ -1,6 +1,6 @@
 import os
 import httpx
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 
 async def get_real_weather(location: str):
     """
@@ -26,12 +26,18 @@ async def get_real_weather(location: str):
                 condition = data["current"]["condition"]["text"]
                 precip_mm = data["current"]["precip_mm"]
                 humidity = data["current"]["humidity"]
+                temp_c = data["current"]["temp_c"]
+                wind_kph = data["current"]["wind_kph"]
+                uv_index = data["current"]["uv"]
                 
-                # Format exactly what the AI needs to predict flood risk
+                # Format exactly what the AI needs to predict multiple hazard risks
                 weather_summary = (
                     f"Current condition: {condition}. "
+                    f"Temperature: {temp_c} C. "
                     f"Precipitation (Rainfall): {precip_mm}mm. "
-                    f"Humidity: {humidity}%."
+                    f"Humidity: {humidity}%. "
+                    f"Wind Speed: {wind_kph} kph. "
+                    f"UV Index: {uv_index}."
                 )
                 return weather_summary
             else:
