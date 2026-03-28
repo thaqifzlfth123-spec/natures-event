@@ -55,7 +55,7 @@ export default function LocationData() {
 
   useEffect(() => {
     fetchRisk(location);
-  }, []);
+  }, []); //potential error here
 
   // Parse weather data from API response for metric cards
   const weatherMetrics = useMemo(() => {
@@ -63,7 +63,7 @@ export default function LocationData() {
     const w = riskData.weather_data_used;
     const windMatch = w.match(/Wind Speed:\s*([\d.]+\s*kph)/i);
     const tempMatch = w.match(/Temperature:\s*([\d.]+)\s*C/i);
-    const humMatch  = w.match(/Humidity:\s*([\d.]+)%/i);
+    const humMatch = w.match(/Humidity:\s*([\d.]+)%/i);
     return {
       windSpeed: windMatch ? windMatch[1] : defaultWeather.windSpeed,
       temp: tempMatch ? `${tempMatch[1]}°C` : defaultWeather.temp,

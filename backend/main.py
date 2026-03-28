@@ -21,7 +21,7 @@ app = FastAPI(
 # Allow CORS for frontend integration (React/Flutter)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to your actual frontend domain
+    allow_origins=["*"], # In production, restrict this to your actual frontend domain, (https://something.vercel.app)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
