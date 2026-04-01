@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Header from './components/Header';
 import SensorGrid from './components/SensorGrid';
@@ -15,7 +15,16 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const dashRef = useRef(null);
+
+  // Track viewport width for mobile detection
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Apply theme to document
   useEffect(() => {
@@ -23,27 +32,26 @@ export default function App() {
   }, [isDark]);
 
   // Prevent the dashboard grid from scrolling (Leaflet/Plotly can trigger auto-scroll)
+  // Only on desktop — mobile needs vertical scrolling
   useEffect(() => {
+    if (isMobile) return; // Don't lock scroll on mobile
     const el = dashRef.current;
     if (!el) return;
     const preventScroll = () => { el.scrollTop = 0; el.scrollLeft = 0; };
     preventScroll();
     el.addEventListener('scroll', preventScroll);
-    // Also reset after a brief delay for lazy-loaded components
     const timer = setTimeout(preventScroll, 500);
     return () => { el.removeEventListener('scroll', preventScroll); clearTimeout(timer); };
-  }, []);
+  }, [isMobile]);
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    // The user's idToken can be used to call protected backend routes:
-    // e.g., getAuthenticatedUser(userData.idToken)
     console.log('Logged in:', userData.email);
   };
 
   return (
     <div className="dashboard" ref={dashRef}>
-      {/* Top Header Bar — placed directly in grid (no ErrorBoundary wrapper to avoid breaking grid-area) */}
+      {/* Top Header Bar */}
       <Header
         onLoginClick={() => setShowAuth(true)}
         onThemeToggle={() => setIsDark(prev => !prev)}
@@ -61,7 +69,7 @@ export default function App() {
         <MapView />
       </ErrorBoundary>
 
-      {/* Right Sidebar: Chatbot + Alert Summary */}
+      {/* Right Sidebar: Chatbot (hidden on mobile) + Alert Summary */}
       <div className="right-sidebar">
         <ChatBot />
         <AlertSummary />
@@ -79,6 +87,25 @@ export default function App() {
           <ImageAnalyzer />
         </ErrorBoundary>
       </div>
+
+      {/* Floating Chatbot FAB — visible only on mobile (CSS controls display) */}
+      <div className="chat-fab">
+        <button
+          className="chat-fab__btn"
+          onClick={() => setChatOpen(prev => !prev)}
+          title="Open AI Chatbot"
+        >
+          {chatOpen ? '✕' : '💬'}
+          <span className="chat-fab__badge" />
+        </button>
+      </div>
+
+      {/* Floating Chat Overlay — shown when FAB is clicked on mobile */}
+      {chatOpen && isMobile && (
+        <div className="chat-overlay">
+          <ChatBot />
+        </div>
+      )}
 
       {/* Auth Modal */}
       {showAuth && (

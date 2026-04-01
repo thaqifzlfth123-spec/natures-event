@@ -939,3 +939,483 @@ body {
   color: var(--text-muted) !important;
   font-size: 8px !important;
 }
+
+/* =============================================================================
+   FLOATING CHATBOT (Mobile FAB)
+   ============================================================================= */
+.chat-fab {
+  display: none; /* Hidden on desktop */
+}
+
+.chat-fab__btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 8000;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.chat-fab__btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(0, 212, 255, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.chat-fab__btn:active {
+  transform: scale(0.95);
+}
+.chat-fab__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  animation: pulse-glow 2s infinite;
+}
+
+/* Floating chat overlay */
+.chat-overlay {
+  position: fixed;
+  bottom: 86px;
+  right: 16px;
+  z-index: 8001;
+  width: calc(100vw - 32px);
+  max-width: 380px;
+  height: 420px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 212, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: chat-slide-up 0.25s ease;
+}
+.chat-overlay .panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+}
+.chat-overlay .panel-header {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+@keyframes chat-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hamburger menu */
+.header__hamburger {
+  display: none; /* Hidden on desktop */
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: all 0.15s;
+}
+.header__hamburger:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.header__mobile-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 16px;
+  z-index: 200;
+  flex-direction: column;
+  gap: 8px;
+  animation: fade-in 0.2s ease;
+}
+.header__mobile-menu--open {
+  display: flex;
+}
+.header__mobile-menu .header__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.header__mobile-menu .header__nav-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.header__mobile-menu .header__right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+.header__mobile-menu .header__login-btn,
+.header__mobile-menu .header__theme-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+/* =============================================================================
+   MOBILE RESPONSIVE — All screens ≤ 768px
+   ============================================================================= */
+@media (max-width: 768px) {
+  /* --- Root & Body: Allow scrolling --- */
+  html, body, #root {
+    overflow: auto;
+    overflow-x: hidden;
+    height: auto;
+    min-height: 100%;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  /* --- Dashboard: Vertical Stack --- */
+  .dashboard {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 1px;
+    grid-template-rows: unset;
+    grid-template-columns: unset;
+    grid-template-areas: unset;
+  }
+
+  /* --- Header: Compact + Hamburger --- */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 5000;
+    flex-wrap: nowrap;
+    height: auto;
+    min-height: 48px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .header__logo {
+    font-size: 11px;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+  .header__logo-icon {
+    width: 6px;
+    height: 6px;
+  }
+  .header__nav {
+    display: none; /* Hidden — moved to hamburger dropdown */
+  }
+  .header__right {
+    display: none; /* Hidden — moved to hamburger dropdown */
+  }
+  .header__hamburger {
+    display: flex;
+    margin-left: auto;
+  }
+  .header__status {
+    font-size: 9px;
+    padding: 4px 8px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* --- Map: Main Feature — Full Width, Prominent --- */
+  .map-area {
+    order: 1;
+    min-height: 45vh;
+    height: 45vh;
+    width: 100%;
+    position: relative;
+  }
+  .map-search {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    width: auto;
+  }
+  .map-search__input {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .map-search__btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+  .map-legend {
+    bottom: 8px;
+    left: 8px;
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+
+  /* --- Left Sidebar: Stacked Below Map --- */
+  .left-sidebar {
+    order: 2;
+    width: 100%;
+    gap: 1px;
+  }
+
+  /* --- Right Sidebar (no chatbot — it's floating) --- */
+  .right-sidebar {
+    order: 3;
+    width: 100%;
+    gap: 1px;
+  }
+  /* Hide chatbot from inline layout — it's a floating overlay on mobile */
+  .right-sidebar > .panel:first-child {
+    display: none;
+  }
+
+  /* --- Bottom Panels: Full Width Stack --- */
+  .bottom-panels {
+    order: 4;
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  /* --- Panel Sizing --- */
+  .panel {
+    min-height: auto;
+  }
+  .panel-header {
+    padding: 10px 14px;
+  }
+  .panel-header__title {
+    font-size: 11px;
+  }
+  .panel-header__badge {
+    font-size: 10px;
+  }
+  .panel-body {
+    padding: 10px 14px;
+  }
+
+  /* --- Sensor Grid: Readable sizes --- */
+  .sensor-item {
+    padding: 10px 0;
+  }
+  .sensor-item__label {
+    font-size: 13px;
+    gap: 10px;
+  }
+  .sensor-item__sub {
+    font-size: 10px;
+  }
+  .sensor-item__value {
+    font-size: 14px;
+  }
+  .sensor-item__dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* --- Risk Gauges --- */
+  .risk-gauge {
+    margin-bottom: 12px;
+  }
+  .risk-gauge__label {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  .risk-gauge__bar {
+    height: 6px;
+  }
+
+  /* --- News Feed --- */
+  .news-item {
+    padding: 10px 0;
+  }
+  .news-item__time {
+    font-size: 10px;
+  }
+  .news-item__text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .news-item__tag {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  /* --- Alert Summary --- */
+  .alert-item {
+    padding: 10px 0;
+  }
+  .alert-item__type {
+    font-size: 12px;
+  }
+  .alert-item__time {
+    font-size: 9px;
+  }
+  .alert-item__desc {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .alert-item__urgency {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  /* --- Location Data --- */
+  .risk-score {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+  .risk-score__number {
+    font-size: 32px;
+  }
+  .risk-score__label {
+    font-size: 11px;
+  }
+  .risk-score__bar {
+    width: 100%;
+  }
+  .metric-cards {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .metric-card {
+    padding: 10px 8px;
+  }
+  .metric-card__label {
+    font-size: 9px;
+  }
+  .metric-card__value {
+    font-size: 14px;
+  }
+
+  /* --- Image Analyzer --- */
+  .image-upload {
+    padding: 20px 14px;
+  }
+  .image-upload__icon {
+    font-size: 32px;
+  }
+  .image-upload__text {
+    font-size: 11px;
+    word-break: break-word;
+  }
+  .ai-output {
+    font-size: 12px;
+  }
+
+  /* --- ChatBot (inside floating overlay) --- */
+  .chat-msg {
+    font-size: 13px;
+    padding: 9px 12px;
+  }
+  .chat-msg__sender {
+    font-size: 9px;
+  }
+  .chat-input__field {
+    font-size: 13px;
+    padding: 12px 14px;
+    min-height: 44px;
+  }
+  .chat-input__send {
+    min-height: 44px;
+    min-width: 56px;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+
+  /* --- Auth Modal --- */
+  .modal {
+    width: calc(100vw - 32px);
+    max-width: 360px;
+    padding: 24px 20px;
+  }
+  .modal__title {
+    font-size: 16px;
+  }
+  .modal__input {
+    font-size: 14px;
+    padding: 12px 14px;
+    min-height: 44px;
+  }
+  .modal__btn {
+    font-size: 13px;
+    padding: 14px;
+    min-height: 48px;
+  }
+  .modal__toggle {
+    font-size: 12px;
+  }
+
+  /* --- Touch Targets (44px minimum) --- */
+  .header__nav-btn,
+  .header__login-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+  .header__theme-btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 18px;
+  }
+
+  /* --- Floating Chatbot: Show on Mobile --- */
+  .chat-fab {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 8000;
+  }
+
+  /* --- Map Zoom Controls: Offset below search bar --- */
+  .leaflet-top.leaflet-left {
+    top: 50px !important;
+  }
+
+  /* --- Plotly Chart --- */
+  .chart-container {
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  /* --- Scrollbar (thinner on mobile) --- */
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+

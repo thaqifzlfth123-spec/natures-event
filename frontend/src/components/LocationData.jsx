@@ -55,7 +55,8 @@ export default function LocationData() {
 
   useEffect(() => {
     fetchRisk(location);
-  }, []); //potential error here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally fetch only on mount
 
   // Parse weather data from API response for metric cards
   const weatherMetrics = useMemo(() => {
