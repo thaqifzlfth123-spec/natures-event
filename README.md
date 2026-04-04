@@ -1,6 +1,7 @@
 # Nature's Event - Disaster Monitor System
+Designed specifically to address the severe flash flooding issues in Malaysia during the Monsoon (Timur Laut) seasons, this advanced full-stack disaster monitoring system provides hyper-localized early warnings.
 
-An advanced, full-stack disaster monitoring and flood alert system built with React (Vite) and FastAPI. The system leverages AI (Groq API using LLaMA models) and real-time data to provide hazard risk assessments, emergency guidance, and community-driven incident reporting with proximity-based push notifications.
+Built with React (Vite) and FastAPI, the system leverages AI (Groq API using LLaMA models) not merely as chat wrappers, but as **Automated Triaging Agents**. By combining real-time meteorological telemetry, unstructured image analysis from panicking users, and geospatial logic, the system autonomously orchestrates context-aware emergency guidance and proximity-based push notifications.
 
 ## 🌟 Key Features
 
@@ -10,18 +11,24 @@ An advanced, full-stack disaster monitoring and flood alert system built with Re
 - **Location Data Analytics:** Dynamic charting via Plotly.js for deep-diving into historical or forecast metrics.
 - **News Feed & Alert Summary:** Aggregated panels for staying updated on the latest regional emergency broadcasts.
 
-### 2. AI-Powered Emergency Services (Backend)
+*(Recommendation for frontend developers: Insert GIF of the Interactive Dashboard mapping here)*
+`[INSERT DASHBOARD UI GIF HERE]`
+
+### 2. AI-Powered Emergency Services (Agentic Backend)
 - **Hazard Risk Checker (`/api/risk`):** 
-  - Takes a user location, fetches real-time weather via WeatherAPI, and uses LLaMA 3.3 (70B) to determine primary natural hazards (Flood, Fire, Storm, etc.) and risk levels.
-- **Emergency Chatbot (`/api/chat`):** 
-  - A contextual AI assistant tailored for emergency scenarios (e.g., Malaysian context with numbers like 999, 994), offering survival advice and critical contacts.
-- **Hazard Image Analyzer (`/api/report`):** 
-  - Users can upload images of incidents. LLaMA 3.2 Vision (11B) analyzes the image to classify the hazard type and severity.
+  - Acts as a rules-engine processing live meteorological telemetry (temperature, wind, humidity via WeatherAPI) against local thresholds (e.g. MET Malaysia FDRS) to autonomously grade risks. 
+- **Hazard Image Triaging (`/api/report`):** 
+  - Instead of relying on manual operator sorting, LLaMA 3.2 Vision acts as an automated triaging agent. When a panicked user uploads a photo, it instantaneously categorizes the hazard type and extracts severity logic.
+- **Autonomous Agentic Workflow (Overpass API Integration):**
+  - If the Vision model detects a "High" severity hazard, it triggers a multi-step agentic loop. The backend autonomously queries the OpenStreetMap Overpass API for the nearest hospital or police station using the user's coordinates, and uses LLaMA to draft a hyper-localized escape route instruction.
 
 ### 3. Real-Time Proximity Alerts & Firebase Integration
-- **Community Incident Reporting:** If the Image Analyzer detects a "High" severity hazard, the backend calculates the distance to registered users.
-- **Push Notifications (FCM):** Using Firebase Cloud Messaging, the system instantly sends emergency push notifications to users living within a 10km radius of the incident.
+- **Community Incident Reporting:** If the Image Triaging detects a "High" severity hazard, the backend calculates the distance to all registered users.
+- **Smart Push Notifications (FCM):** Using Firebase Cloud Messaging, the system instantly pushes the Agent-generated evacuation route to the mobile devices of users living within a 10km danger zone.
 - **Authentication & Database:** Firebase Authentication handles secure user sign-ups and logins, while Firestore persists user profiles, locations, and hazard reports.
+
+*(Recommendation for frontend developers: Insert GIF of Smart Push Notification triggering on mobile/desktop)*
+`[INSERT PUSH NOTIFICATION ALERT GIF HERE]`
 
 ## 🏗️ System Architecture
 

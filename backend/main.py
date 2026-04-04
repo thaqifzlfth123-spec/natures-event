@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends # type: ignore
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel # pyright: ignore[reportMissingImports]
-from ai_service import check_hazard_risk, get_chatbot_response, analyze_hazard_image
+from ai_service import check_hazard_risk, get_chatbot_response, analyze_hazard_image, get_evacuation_plan
 from weather_service import get_real_weather
 from database import get_db, auth as firebase_auth
 from firebase_admin import auth as fa_auth, messaging
@@ -170,6 +170,17 @@ async def report_hazard(
     image_bytes = await image.read()
     hazard, severity, analysis, confidence = await analyze_hazard_image(image_bytes, location, image.content_type)
     
+    # --- AUTONOMOUS AGENTIC WORKFLOW ---
+    smart_alert_body = f"A High-severity {hazard} was just reported nearby in {location}."
+    
+    if hazard.lower() != "none" and "high" in severity.lower():
+        # Call the Agent to find the nearest safe zone and draft an evacuation response
+        evac_plan = await get_evacuation_plan(latitude, longitude, hazard)
+        smart_alert_body = f"EMERGENCY: {evac_plan}"
+        
+        # Append to the AI Analysis so the frontend displays it automatically
+        analysis += f"\n\n🚨 **Actionable Evacuation Plan:** {evac_plan}"
+    
     # Save the report to Firebase Firestore
     db = get_db()
     if db:
@@ -198,11 +209,11 @@ async def report_hazard(
                     if user_lat and user_lon and fcm_token:
                         dist = calculate_distance(latitude, longitude, user_lat, user_lon)
                         if dist <= 10.0:  # 10km proximity rule
-                            # Send Push Notification
+                            # Send Smart Push Notification
                             message = messaging.Message(
                                 notification=messaging.Notification(
                                     title=f"EMERGENCY ALERT: {hazard}",
-                                    body=f"A High-severity {hazard} was just reported {round(dist, 1)}km away from your home in {location}."
+                                    body=smart_alert_body
                                 ),
                                 token=fcm_token,
                             )

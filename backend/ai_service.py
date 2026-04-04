@@ -1,5 +1,6 @@
 import os
 import base64
+import httpx
 from groq import AsyncGroq # pyright: ignore[reportMissingImports]
 from dotenv import load_dotenv # type: ignore
 
@@ -11,6 +12,46 @@ api_key = os.getenv("GROQ_API_KEY")
 # The Groq library automatically picks up GROQ_API_KEY from the environment,
 # but we explicitly pass it here just in case.
 client = AsyncGroq(api_key=api_key) if api_key else None
+
+async def get_evacuation_plan(lat: float, lon: float, hazard: str) -> str:
+    if not client:
+        return "Please move to higher ground and seek the nearest hospital or police station."
+    
+    # Query OpenStreetMap (Overpass API) for nearest hospital or safe zone within 5km
+    query = f"""
+    [out:json];
+    (
+      node["amenity"="hospital"](around:5000,{lat},{lon});
+      node["amenity"="police"](around:5000,{lat},{lon});
+      node["amenity"="community_centre"](around:5000,{lat},{lon});
+    );
+    out body 1;
+    """
+    
+    safe_zone_name = "the nearest official safe zone"
+    
+    try:
+        async with httpx.AsyncClient() as http_client:
+            resp = await http_client.post("https://overpass-api.de/api/interpreter", data=query, timeout=5.0)
+            data = resp.json()
+            if data and "elements" in data and len(data["elements"]) > 0:
+                tags = data["elements"][0].get("tags", {})
+                safe_zone_name = tags.get("name", "Nearest Safe facility")
+    except Exception as e:
+        print(f"Overpass API error: {e}")
+        
+    # Ask LLaMA to draft a smart notification
+    prompt = f"There is a High severity {hazard} reported near {lat}, {lon}. We found a safe zone: {safe_zone_name}. Draft a brief, 1-sentence urgent emergency evacuation instruction directed at the user, telling them to evacuate to {safe_zone_name}."
+    
+    try:
+        response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Urgent: {hazard} detected. Please evacuate to {safe_zone_name}."
 
 async def check_hazard_risk(location: str, weather_data: str):
     if not client:
@@ -58,14 +99,34 @@ async def get_chatbot_response(message: str):
     if not client:
         return "Mocked response (No GROQ_API_KEY set in .env): Head to higher ground immediately and listen to local authorities."
         
+    # --- RAG IMPLEMENTATION ---
+    # Retrieve the ground-truth context from the knowledge base
+    rag_context = ""
+    try:
+        kb_path = os.path.join(os.path.dirname(__file__), "knowledge_base.txt")
+        with open(kb_path, "r", encoding="utf-8") as f:
+            rag_context = f.read()
+    except Exception as e:
+        print(f"RAG Knowledge Base not found or unreadable: {e}")
+        
+    system_prompt = f"""You are a National Emergency Assistant for Malaysia. 
+    Use the following official NADMA guidelines to answer the user's questions. 
+    If the answer is not in the guidelines, provide general, safe emergency advice.
+    
+    [OFFICIAL GUIDELINES CONTEXT]
+    {rag_context}
+    [END CONTEXT]
+    
+    Always provide Malaysian emergency numbers (e.g., 999 or 994) mentioned in the guidelines. Provide helpful, concise safety advice."""
+
     try:
         response = await client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a National Emergency Assistant specifically for users in Malaysia. Always provide Malaysian emergency numbers (e.g., 999 for Police/Ambulance, 994 for Fire and Rescue/Bomba, and NADMA) and tailor all advice to the Malaysian context for ANY natural disaster (Flood, Fire, Storm, etc). Provide helpful, concise safety advice."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}
             ],
-            temperature=0.7,
+            temperature=0.3, # lower temperature for factual RAG responses
         )
         return response.choices[0].message.content
     except Exception as e:
