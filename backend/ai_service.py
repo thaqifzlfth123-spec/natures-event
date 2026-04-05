@@ -140,7 +140,10 @@ async def get_chatbot_response(message: str):
     {rag_context}
     [END CONTEXT]
     
-    Always provide Malaysian emergency numbers (e.g., 999 or 994) mentioned in the guidelines. Provide helpful, concise safety advice."""
+    CRITICAL RULE: You must automatically analyze the language of the user's prompt (e.g., Bahasa Melayu, Mandarin, Tamil, or English). 
+    You MUST reply entirely in the exact same language they used to speak to you. 
+    Translate the official guidelines and Malaysian emergency numbers (e.g., 999 or 994) natively into their language with cultural empathy. 
+    Provide helpful, concise safety advice."""
 
     try:
         response = None
