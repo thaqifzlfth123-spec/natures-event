@@ -30,8 +30,13 @@ async def get_real_weather(location: str):
                 wind_kph = data["current"]["wind_kph"]
                 uv_index = data["current"]["uv"]
                 
+                # Fetch exact location name from the API to stop AI hallucinations
+                actual_name = data["location"]["name"]
+                actual_region = data["location"]["region"]
+                
                 # Format exactly what the AI needs to predict multiple hazard risks
                 weather_summary = (
+                    f"[CONFIRMED LOCATION: {actual_name}, {actual_region}] "
                     f"Current condition: {condition}. "
                     f"Temperature: {temp_c} C. "
                     f"Precipitation (Rainfall): {precip_mm}mm. "
