@@ -254,4 +254,4 @@ async def analyze_hazard_image(image_bytes: bytes, location: str, content_type: 
 
     except Exception as e:
         logger.error(f"Error analyzing hazard image: {e}")
-        return "Unknown", "Medium", f"Image analysis failed because the AI encountered a strict error: {str(e)}", "0%"
+        return "Unknown", "Unknown", f"Image analysis failed because the AI encountered a strict error: {str(e)}", "0%"
