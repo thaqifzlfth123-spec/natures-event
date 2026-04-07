@@ -306,74 +306,33 @@ async def get_me(token: dict = Depends(verify_token)):
         "email": token.get("email")
     }
 
-@app.get("/api/news", summary="Dynamic AI News Feed (UN ReliefWeb)")
+@app.get("/api/news", summary="Dynamic AI News Feed (GDACS Global Alerts)")
 async def get_news_feed():
     import httpx
-    url = "https://api.reliefweb.int/v1/reports?appname=flood-alert-system&query[value]=Malaysia+OR+flood+OR+monsoon+OR+disaster&preset=latest&limit=8&profile=list"
+    import xml.etree.ElementTree as ET
+    url = "https://www.gdacs.org/xml/rss.xml"
+    headers = {"User-Agent": "flood-alert-system/1.0"}
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=5.0)
+            response = await client.get(url, headers=headers, timeout=5.0)
             if response.status_code != 200: return []
-            data = response.json()
-            articles = data.get("data", [])
+            
+            # Using fromstring on response.text/content handles the XML structure
+            root = ET.fromstring(response.content)
+            items = root.findall(".//item")
+            
             news_items = []
-            for article in articles:
-                title = article.get("fields", {}).get("title", "Unknown Alert")
-                news_items.append({"time": "JUST NOW", "text": title, "tag": "GLOBAL ALERT", "tagColor": "var(--accent-red)"})
+            for item in items[:8]:  # Limit to 8 latest alerts
+                title = item.find("title").text if item.find("title") is not None else "Unknown Alert"
+                # Simplify and beautify the GDACS titles
+                clean_title = title.replace("Green ", "").replace("Orange ", "🚨 ").replace("Red ", "🔥 ")
+                news_items.append({
+                    "time": "LIVE DATA", 
+                    "text": clean_title, 
+                    "tag": "GLOBAL ALERT", 
+                    "tagColor": "var(--accent-red)"
+                })
             return news_items
-    except:
-        return []
-
-    try:
-        # Fetch latest 8 reports sorted by timestamp descending
-        from google.cloud.firestore_v1.base_query import FieldFilter, BaseCompositeFilter # type: ignore
-        from google.cloud import firestore # type: ignore
-        
-        reports_ref = db.collection("reports").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(8).stream()
-        
-        news_items = []
-        for r in reports_ref:
-            doc = r.to_dict()
-            hazard = doc.get("hazard", "EVENT").upper()
-            severity = doc.get("severity", "Medium")
-            location = doc.get("location", "Unknown Location")
-            
-            # Format Time
-            now = datetime.now(timezone.utc)
-            timestamp = doc.get("timestamp")
-            time_str = "JUST NOW"
-            if timestamp:
-                # Firestore returns DatetimeWithNanoseconds which acts like standard datetime
-                diff = now - timestamp
-                mins = int(diff.total_seconds() / 60)
-                if mins < 1:
-                    time_str = "JUST NOW"
-                elif mins < 60:
-                    time_str = f"{mins} MIN AGO"
-                elif mins < 1440:
-                    time_str = f"{mins // 60} HOURS AGO"
-                else:
-                    time_str = f"{mins // 1440} DAYS AGO"
-
-            # Assign Styling Based on Severity
-            if "high" in severity.lower():
-                tag_color = "var(--accent-red)"
-                text = f"HIGH SEVERITY {hazard} reported in {location}."
-            elif "low" in severity.lower():
-                tag_color = "var(--accent-green)"
-                text = f"Minor {hazard} reported in {location}. Monitoring."
-            else:
-                tag_color = "var(--accent-orange)"
-                text = f"Unverified {hazard} incident reported in {location}."
-
-            news_items.append({
-                "time": time_str,
-                "text": text,
-                "tag": hazard,
-                "tagColor": tag_color
-            })
-            
-        return news_items
     except Exception as e:
-        logger.error(f"Error fetching news feed: {e}")
-        return []
+        logger.error(f"GDACS Fetch failed: {e}")
+        return [{"time": "OFFLINE", "text": "Disaster feed temporarily unavailable.", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
