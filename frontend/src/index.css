@@ -46,6 +46,11 @@
   --shadow-card: 0 4px 12px rgba(0,0,0,0.5);
   --shadow-glow-cyan: 0 0 15px rgba(0,212,255,0.25);
   --shadow-glow-red: 0 0 15px rgba(255,71,87,0.3);
+  /* Pulse Glows */
+  --accent-cyan-glow: rgba(0, 212, 255, 0.4);
+  --accent-red-glow: rgba(255, 71, 87, 0.4);
+  --accent-gold-glow: rgba(212, 168, 67, 0.4);
+  --accent-green-glow: rgba(0, 230, 118, 0.4);
   /* Radius */
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -462,7 +467,7 @@ body {
   background: rgba(13, 17, 23, 0.8);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  color: #ffffff; /* Permanently white for tactical search bar */
   padding: 10px 18px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -504,25 +509,59 @@ body {
   left: 12px;
   z-index: 1000;
   background: var(--bg-card);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--border-color);
-  padding: 8px 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 9px;
+  gap: 4px;
+  pointer-events: auto;
+  min-width: 110px;
+}
+
+.map-legend__header {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
 }
 
 .map-legend__item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-secondary);
+  font-size: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.map-legend__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.map-legend__item--active {
+  background: var(--bg-input);
+  color: var(--accent-cyan);
+  border: 1px solid var(--accent-cyan-dim);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
 }
 
 .map-legend__dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
 }
 
 /* ---------- Bottom Panel Group ---------- */

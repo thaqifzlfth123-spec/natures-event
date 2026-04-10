@@ -11,15 +11,27 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom colored marker icons
-function createIcon(color) {
+// Theme-aligned colors for markers and pulses
+const COLORS = {
+  earthquake: { name: 'red', hex: '#ff4757' },
+  flood: { name: 'cyan', hex: '#00d4ff' },
+  monsoon: { name: 'gold', hex: '#d4a843' },
+  station: { name: 'green', hex: '#00e676' },
+};
+
+// Custom colored marker icons with optional sonar pulse
+function createIcon(colorObj, pulse = false) {
+  const { name, hex } = colorObj;
   return L.divIcon({
-    className: '',
-    html: `<div style="
-      width:14px;height:14px;border-radius:50%;
-      background:${color};border:2px solid rgba(255,255,255,0.8);
-      box-shadow:0 0 8px ${color}, 0 0 16px ${color}44;
-    "></div>`,
+    className: 'custom-marker',
+    html: `
+      ${pulse ? `<div class="sonar-pulse" style="background: var(--accent-${name}-glow)"></div>` : ''}
+      <div style="
+        width:14px;height:14px;border-radius:50%;
+        background:${hex};border:2px solid rgba(255,255,255,0.8);
+        box-shadow:0 0 8px ${hex}, 0 0 16px ${hex}44;
+        position: relative; z-index: 2;
+      "></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
     popupAnchor: [0, -10],
@@ -27,10 +39,15 @@ function createIcon(color) {
 }
 
 const icons = {
-  earthquake: createIcon('#ff4757'),
-  flood: createIcon('#0099ff'),
-  monsoon: createIcon('#d4a843'),
-  station: createIcon('#00e676'),
+  earthquake: createIcon(COLORS.earthquake),
+  flood: createIcon(COLORS.flood),
+  monsoon: createIcon(COLORS.monsoon),
+  station: createIcon(COLORS.station),
+  // Pulse variants for filtered view
+  earthquake_pulse: createIcon(COLORS.earthquake, true),
+  flood_pulse: createIcon(COLORS.flood, true),
+  monsoon_pulse: createIcon(COLORS.monsoon, true),
+  station_pulse: createIcon(COLORS.station, true),
   user: L.divIcon({
     className: 'user-marker',
     html: `
@@ -91,14 +108,16 @@ export default function MapView({ onSearch }) {
   const [searchVal, setSearchVal] = useState('');
   const [flyTarget, setFlyTarget] = useState(null);
   const [tacticalMode, setTacticalMode] = useState('standard');
+  const [activeFilter, setActiveFilter] = useState('all');
 
   // Simple geocoding via Nominatim (free, no key required)
   const handleSearch = useCallback(async () => {
     if (!searchVal.trim()) return;
     try {
       // NOTE: For production, use a proper geocoding API (Google, Mapbox, etc.)
+      const geoQuery = searchVal.toLowerCase().includes('malaysia') ? searchVal : `${searchVal}, Malaysia`;
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchVal)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(geoQuery)}&limit=1`
       );
       const data = await res.json();
       if (data.length > 0) {
@@ -178,18 +197,24 @@ export default function MapView({ onSearch }) {
         )}
 
         {/* Disaster markers */}
-        {markers.map((m, i) => (
-          <Marker key={i} position={m.pos} icon={icons[m.type]}>
-            <Popup>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                <strong>{m.label}</strong><br />
-                <span style={{ color: m.severity === 'High' ? '#ff4757' : m.severity === 'Medium' ? '#ff9f43' : '#00e676' }}>
-                  Severity: {m.severity}
-                </span>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {markers
+          .filter(m => activeFilter === 'all' || m.type === activeFilter)
+          .map((m, i) => (
+            <Marker 
+              key={`${m.type}-${i}`} 
+              position={m.pos} 
+              icon={activeFilter === 'all' ? icons[m.type] : icons[`${m.type}_pulse`]}
+            >
+              <Popup>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                  <strong>{m.label}</strong><br />
+                  <span style={{ color: m.severity === 'High' ? '#ff4757' : m.severity === 'Medium' ? '#ff9f43' : '#00e676' }}>
+                    Severity: {m.severity}
+                  </span>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
         {/* Connection arcs */}
         {arcs.map((a, i) => (
@@ -208,18 +233,28 @@ export default function MapView({ onSearch }) {
 
       {/* Map Legend */}
       <div className="map-legend">
-        <div className="map-legend__item">
-          <span className="map-legend__dot" style={{ background: '#ff4757' }} /> Earthquake
+        <div className="map-legend__header">Tactical Filters</div>
+        
+        <div 
+          className={`map-legend__item ${activeFilter === 'all' ? 'map-legend__item--active' : ''}`}
+          onClick={() => setActiveFilter('all')}
+        >
+          All Events
         </div>
-        <div className="map-legend__item">
-          <span className="map-legend__dot" style={{ background: '#0099ff' }} /> Flood
-        </div>
-        <div className="map-legend__item">
-          <span className="map-legend__dot" style={{ background: '#d4a843' }} /> Monsoon
-        </div>
-        <div className="map-legend__item">
-          <span className="map-legend__dot" style={{ background: '#00e676' }} /> Station
-        </div>
+
+        {Object.keys(COLORS).map(type => (
+          <div 
+            key={type}
+            className={`map-legend__item ${activeFilter === type ? 'map-legend__item--active' : ''}`}
+            onClick={() => setActiveFilter(type)}
+          >
+            <span 
+              className="map-legend__dot" 
+              style={{ color: COLORS[type].hex, background: COLORS[type].hex }} 
+            />
+            {type}
+          </div>
+        ))}
       </div>
     </div>
   );

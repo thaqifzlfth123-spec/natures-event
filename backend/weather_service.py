@@ -30,7 +30,12 @@ async def get_real_weather(location: str):
             f"Precipitation (Rainfall): {precip}mm."
         )
 
-    url = f"http://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={location}&aqi=no"
+    # Force Malaysia context to prevent finding locations in cold climates (e.g. Poland)
+    query = location
+    if "malaysia" not in location.lower():
+        query = f"{location}, Malaysia"
+
+    url = f"http://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={query}&aqi=no"
 
     try:
         async with httpx.AsyncClient() as client:
