@@ -42,7 +42,7 @@ function PlotlyChart({ data, layout }) {
   return <div ref={containerRef} style={{ width: '100%', minHeight: 120 }} />;
 }
 
-export default function LocationData({ location, riskData, loading }) {
+export default function LocationData({ location, riskData, loading, activeFilter }) {
   // Default values for initial or invalid states
   const defaultWeather = { windSpeed: 'Unknown', temp: 'Unknown', humidity: 'Unknown' };
 
@@ -78,12 +78,13 @@ export default function LocationData({ location, riskData, loading }) {
 
   const scoreColor = riskScore >= 70 ? 'var(--accent-red)' : riskScore >= 40 ? 'var(--accent-orange)' : 'var(--accent-green)';
 
-  // Historical flood frequency chart data (memoized to react to location changes)
-  const floodChartData = useMemo(() => {
+  // Historical hazard frequency chart data (Clustered Bar Chart)
+  const hazardChartData = useMemo(() => {
+    const years = ['2022', '2023', '2024', '2025'];
     if (!isValidLocation) {
       return [{
-        x: ['2019', '2020', '2021', '2022', '2023', '2024', '2025'],
-        y: [0, 0, 0, 0, 0, 0, 0],
+        x: years,
+        y: [0, 0, 0, 0],
         type: 'bar',
         marker: { color: '#1e2a3a' },
         name: 'No Data',
@@ -91,23 +92,34 @@ export default function LocationData({ location, riskData, loading }) {
     }
 
     const seed = getSeed(location);
-    const baseValues = [12, 18, 15, 32, 28, 35, 22];
-    // Generate unique pattern based on location seed
-    const dynamicValues = baseValues.map((v, i) => {
-      const shift = ((seed + i) % 20) - 10;
-      return Math.max(2, v + shift);
-    });
+    const generateData = (base, multiplier) => base.map((v, i) => Math.max(2, v + ((seed * multiplier + i) % 20) - 10));
+    
+    const floodValues = generateData([12, 18, 15, 32], 1);
+    const monsoonValues = generateData([25, 30, 22, 28], 2);
+    const wildfireValues = generateData([5, 12, 8, 15], 3);
 
-    return [{
-      x: ['2019', '2020', '2021', '2022', '2023', '2024', '2025'],
-      y: dynamicValues,
-      type: 'bar',
-      marker: { 
-        color: dynamicValues.map(v => v > 30 ? '#ff4757' : v > 20 ? '#ff9f43' : '#0099bb') 
-      },
-      name: 'Flood Events',
+    const traces = [];
+    
+    if (activeFilter === 'all' || activeFilter === 'flood') {
+      traces.push({
+        x: years, y: floodValues, type: 'bar', name: 'Flood', marker: { color: '#00d4ff' }
+      });
+    }
+    if (activeFilter === 'all' || activeFilter === 'monsoon') {
+      traces.push({
+        x: years, y: monsoonValues, type: 'bar', name: 'Monsoon', marker: { color: '#d4a843' }
+      });
+    }
+    if (activeFilter === 'all' || activeFilter === 'wildfire') {
+      traces.push({
+        x: years, y: wildfireValues, type: 'bar', name: 'Wildfire', marker: { color: '#a855f7' }
+      });
+    }
+
+    return traces.length > 0 ? traces : [{
+      x: years, y: [0,0,0,0], type: 'bar', name: 'No Match', marker: { color: '#1e2a3a' }
     }];
-  }, [location, isValidLocation]);
+  }, [location, isValidLocation, activeFilter]);
 
   // Rainfall comparison chart data (memoized to react to location changes)
   const rainfallData = useMemo(() => {
@@ -142,7 +154,7 @@ export default function LocationData({ location, riskData, loading }) {
     }];
   }, [location, isValidLocation]);
 
-  const floodLayout = useMemo(() => ({ bargap: 0.3 }), []);
+  const hazardLayout = useMemo(() => ({ barmode: 'group', bargap: 0.15, barwidth: 0.2 }), []);
   const rainfallLayout = useMemo(() => ({}), []);
 
   return (
@@ -173,8 +185,8 @@ export default function LocationData({ location, riskData, loading }) {
 
         {/* Plotly Charts */}
         <div className="chart-container">
-          <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Historical Flood Frequency</div>
-          <PlotlyChart data={floodChartData} layout={floodLayout} />
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Historical Multi-Hazard Frequency</div>
+          <PlotlyChart data={hazardChartData} layout={hazardLayout} />
         </div>
 
         <div className="chart-container">

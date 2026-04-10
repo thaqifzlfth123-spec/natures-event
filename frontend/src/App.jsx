@@ -23,6 +23,7 @@ export default function App() {
   const [sharedLocation, setSharedLocation] = useState('');
   const [sharedRiskData, setSharedRiskData] = useState(null);
   const [loadingRisk, setLoadingRisk] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   // Track viewport width for mobile detection
   useEffect(() => {
@@ -87,7 +88,11 @@ export default function App() {
 
       {/* Central Map View — ErrorBoundary must inherit grid-area */}
       <ErrorBoundary fallback="Map failed to load">
-        <MapView onSearch={handleUnifiedSearch} />
+        <MapView 
+          onSearch={handleUnifiedSearch} 
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+        />
       </ErrorBoundary>
 
       {/* Right Sidebar: Chatbot (hidden on mobile) + Alert Summary */}
@@ -106,6 +111,7 @@ export default function App() {
             location={sharedLocation} 
             riskData={sharedRiskData} 
             loading={loadingRisk} 
+            activeFilter={activeFilter}
           />
         </ErrorBoundary>
         <ErrorBoundary fallback="Image Analyzer unavailable">

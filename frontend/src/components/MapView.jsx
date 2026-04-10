@@ -16,6 +16,7 @@ const COLORS = {
   earthquake: { name: 'red', hex: '#ff4757' },
   flood: { name: 'cyan', hex: '#00d4ff' },
   monsoon: { name: 'gold', hex: '#d4a843' },
+  wildfire: { name: 'purple', hex: '#a855f7' },
   station: { name: 'green', hex: '#00e676' },
 };
 
@@ -47,6 +48,7 @@ const icons = {
   earthquake_pulse: createIcon(COLORS.earthquake, true),
   flood_pulse: createIcon(COLORS.flood, true),
   monsoon_pulse: createIcon(COLORS.monsoon, true),
+  wildfire_pulse: createIcon(COLORS.wildfire, true),
   station_pulse: createIcon(COLORS.station, true),
   user: L.divIcon({
     className: 'user-marker',
@@ -87,15 +89,12 @@ const markers = [
   { pos: [4.2105, 101.9758], type: 'station',    label: 'Cameron Highlands — Weather Station',     severity: 'Active' },
   { pos: [3.8077, 103.326],  type: 'station',    label: 'Cherating — Coastal Monitor',             severity: 'Active' },
   { pos: [2.7456, 101.7072], type: 'flood',      label: 'Shah Alam — Drainage Overflow',           severity: 'Medium' },
+  { pos: [4.4729, 101.3734], type: 'wildfire',   label: 'Gua Musang — Hotspot Detected',           severity: 'High' },
+  { pos: [5.3117, 103.1324], type: 'wildfire',   label: 'Terengganu Forest — FFMC Level Extreme',  severity: 'Medium' },
 ];
 
-// Connection arcs between related events
-const arcs = [
-  { from: [3.139, 101.6869], to: [2.7456, 101.7072] },
-  { from: [6.1254, 102.2381], to: [4.5841, 103.4248] },
-  { from: [5.4164, 100.3327], to: [2.1896, 102.2501] },
-  { from: [4.2105, 101.9758], to: [3.8077, 103.326] },
-];
+// Connection arcs removed as per tactical redesign request
+const arcs = [];
 
 // Component to fly to searched location
 function FlyTo({ center }) {
@@ -104,11 +103,10 @@ function FlyTo({ center }) {
   return null;
 }
 
-export default function MapView({ onSearch }) {
+export default function MapView({ onSearch, activeFilter, setActiveFilter }) {
   const [searchVal, setSearchVal] = useState('');
   const [flyTarget, setFlyTarget] = useState(null);
   const [tacticalMode, setTacticalMode] = useState('standard');
-  const [activeFilter, setActiveFilter] = useState('all');
 
   // Simple geocoding via Nominatim (free, no key required)
   const handleSearch = useCallback(async () => {
