@@ -37,6 +37,12 @@ graph TD
 - **Input Sanitization**: Strict regex-based validation on location searches to prevent XSS and malformed queries (e.g., preventing numbers or symbols in city lookups).
 - **Secret Management**: API keys and Firebase credentials are fully abstracted via environment variables and encrypted secret files in production.
 
+### 5. Premium UI/UX Design System
+- **Glassmorphism Shell**: Implements a sophisticated design language using `backdrop-filter` blur effects and semi-transparent layers for enhanced depth.
+- **High-Tech Monitor Aesthetics**: Features real-time **Vertical Scanline animations** and **Pulsating Glow** effects on critical status indicators.
+- **Context-Aware Typography**: Uses a dual-font system—**Inter** for professional UI clarity and **JetBrains Mono** for technical telemetry data—optimizing readability for various information densities.
+- **Dynamic Asset Coloring**: Gradients and accent colors shift automatically based on disaster severity tiers, providing instant visual triaging for emergency responders.
+
 ## 📊 Performance Benchmarks (Estimated)
 - **AI Triage Latency**: ~1.2s - 2.5s (LLaMA 3.3 Versatile via Groq)
 - **Geocoding Resolution**: ~500ms (OSM/Nominatim)

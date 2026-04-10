@@ -24,7 +24,9 @@ export default function Header({ onLoginClick, onThemeToggle, isDark }) {
       {/* Logo */}
       <div className="header__logo">
         <div className="header__logo-icon" />
-        DISASTER MONITOR
+        <span style={{ letterSpacing: '4px', background: 'linear-gradient(90deg, #fff, #8899aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          DISASTER MONITOR
+        </span>
       </div>
 
       {/* Region Filter Buttons (Desktop) */}
@@ -42,7 +44,7 @@ export default function Header({ onLoginClick, onThemeToggle, isDark }) {
 
       {/* Right Section: Timestamp, Status, Login, Theme (Desktop) */}
       <div className="header__right">
-        <span className="header__timestamp">LAST SYNC: {formattedTime}</span>
+        <span className="header__timestamp telemetry">LAST SYNC: {formattedTime}</span>
         <span className="header__status header__status--high">HIGH ALERT</span>
         <button className="header__login-btn" onClick={onLoginClick}>
           LOGIN / REGISTER

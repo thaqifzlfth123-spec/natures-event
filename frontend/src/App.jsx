@@ -59,7 +59,7 @@ export default function App() {
       />
 
       {/* Left Sidebar: Sensor Grid + Risk Gauges */}
-      <div className="left-sidebar">
+      <div className="left-sidebar glass scanline">
         <SensorGrid />
         <RiskGauges />
       </div>
@@ -70,13 +70,13 @@ export default function App() {
       </ErrorBoundary>
 
       {/* Right Sidebar: Chatbot (hidden on mobile) + Alert Summary */}
-      <div className="right-sidebar">
+      <div className="right-sidebar glass scanline">
         <ChatBot />
         <AlertSummary />
       </div>
 
       {/* Bottom Panel Group */}
-      <div className="bottom-panels">
+      <div className="bottom-panels glass">
         <ErrorBoundary fallback="News Feed unavailable">
           <NewsFeed />
         </ErrorBoundary>

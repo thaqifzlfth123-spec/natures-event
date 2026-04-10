@@ -36,13 +36,17 @@ export default function SensorGrid() {
         {sensors.map((s, i) => (
           <div className="sensor-item" key={s.id}>
             <div className="sensor-item__label">
-              <span className="sensor-item__dot" style={{ background: s.color }} />
+              <span className="sensor-item__dot" style={{ 
+                background: s.color,
+                boxShadow: `0 0 8px ${s.color}`,
+                animation: 'pulse-glow 2s infinite'
+              }} />
               <div>
                 {s.name}
                 <div className="sensor-item__sub">{s.sub}</div>
               </div>
             </div>
-            <span className="sensor-item__value" style={{ color: s.color }}>
+            <span className="sensor-item__value telemetry fade-in" style={{ color: s.color }}>
               {s.value.toLocaleString()}
             </span>
           </div>

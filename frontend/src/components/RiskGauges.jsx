@@ -19,12 +19,16 @@ export default function RiskGauges() {
           <div className="risk-gauge" key={i}>
             <div className="risk-gauge__label">
               <span className="risk-gauge__name">{g.name}</span>
-              <span className="risk-gauge__value" style={{ color: g.color }}>{g.level}</span>
+              <span className="risk-gauge__value telemetry" style={{ color: g.color }}>{g.level}</span>
             </div>
             <div className="risk-gauge__bar">
               <div
                 className="risk-gauge__fill"
-                style={{ width: `${g.value}%`, background: g.color }}
+                style={{ 
+                  width: `${g.value}%`, 
+                  background: `linear-gradient(90deg, ${g.color}88, ${g.color})`,
+                  boxShadow: `0 0 8px ${g.color}aa`
+                }}
               />
             </div>
           </div>
