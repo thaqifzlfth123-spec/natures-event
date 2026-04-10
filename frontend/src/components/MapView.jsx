@@ -43,6 +43,7 @@ const icons = {
   earthquake: createIcon(COLORS.earthquake),
   flood: createIcon(COLORS.flood),
   monsoon: createIcon(COLORS.monsoon),
+  wildfire: createIcon(COLORS.wildfire),
   station: createIcon(COLORS.station),
   // Pulse variants for filtered view
   earthquake_pulse: createIcon(COLORS.earthquake, true),
