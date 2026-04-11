@@ -124,9 +124,9 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
       if (data.length > 0) {
         const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
         setFlyTarget({ coords, zoom: 14 });
-        // Call the parent's unified search handler
+        // Call the parent's unified search handler with coordinates to avoid ambiguity
         if (typeof onSearch === 'function') {
-          onSearch(searchVal);
+          onSearch(searchVal, coords[0], coords[1]);
         }
       }
     } catch (err) {

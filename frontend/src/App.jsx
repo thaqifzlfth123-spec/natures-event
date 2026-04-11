@@ -56,13 +56,13 @@ export default function App() {
   };
 
   // UNIFIED SEARCH HANDLER
-  const handleUnifiedSearch = async (loc) => {
+  const handleUnifiedSearch = async (loc, lat = null, lon = null) => {
     if (!loc) return;
     setSharedLocation(loc);
     setLoadingRisk(true);
     try {
       const { checkHazardRisk } = await import('./services/api');
-      const data = await checkHazardRisk(loc);
+      const data = await checkHazardRisk(loc, lat, lon);
       setSharedRiskData(data);
     } catch (err) {
       console.error('Unified search failed:', err);

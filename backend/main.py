@@ -69,6 +69,8 @@ app.add_middleware(
 # Pydantic Models for Request validation
 class LocationRequest(BaseModel):
     location: str
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 class ChatRequest(BaseModel):
     message: str
@@ -128,7 +130,7 @@ async def get_risk(request: LocationRequest):
     logger.info(f"[CACHE MISS] Fetching fresh API data for {loc_key}...")
     
     # 2. FETCH REAL DATA IF NO CACHE
-    live_weather_data = await get_real_weather(request.location)
+    live_weather_data = await get_real_weather(request.location, lat=request.lat, lon=request.lon)
     primary_hazard, risk_level, explanation = await check_hazard_risk(request.location, live_weather_data)
     
     # 3. SAVE TO CACHE FOR NEXT 10 MINUTES

@@ -8,12 +8,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 // 1. HAZARD RISK CHECK — POST /api/risk
 //    Sends a location string, returns: { primary_hazard, risk_level, explanation, weather_data_used }
 // -----------------------------------------------------------------------------
-export async function checkHazardRisk(location) {
+export async function checkHazardRisk(location, lat = null, lon = null) {
   try {
     const res = await fetch(`${API_BASE_URL}/api/risk`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ location }),
+      body: JSON.stringify({ location, lat, lon }),
     });
     if (!res.ok) throw new Error(`Risk API error: ${res.status}`);
     return await res.json();

@@ -178,7 +178,18 @@ export default function LocationData({ location, riskData, loading, activeFilter
               <div className="risk-score__indicator" style={{ left: `${riskScore}%` }} />
             </div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
-              {isValidLocation ? (riskData?.explanation || 'Loading analysis...') : 'Enter a location in the map search bar to view risk analytics.'}
+              {isValidLocation ? (
+                (() => {
+                  const text = riskData?.explanation || 'Loading analysis...';
+                  // Robust bold formatter for **text**
+                  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return <strong key={i} style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>{part.slice(2, -2)}</strong>;
+                    }
+                    return part;
+                  });
+                })()
+              ) : 'Enter a location in the map search bar to view risk analytics.'}
             </div>
           </div>
         </div>
