@@ -1,0 +1,8 @@
+{
+  "public": false,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "rootDir": "frontend",
+  "outputDirectory": "dist"
+}
