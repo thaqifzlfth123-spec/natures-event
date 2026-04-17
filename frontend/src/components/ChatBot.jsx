@@ -17,7 +17,7 @@ export default function ChatBot() {
         text: t('vaiWelcome'),
       },
     ]);
-  }, [language]); // React to language changes
+  }, [language, t]); // React to language changes
 
   // Auto-scroll to bottom
   useEffect(() => {

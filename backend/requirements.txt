@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 python-dotenv
-groq
 google-genai
 python-multipart
 httpx

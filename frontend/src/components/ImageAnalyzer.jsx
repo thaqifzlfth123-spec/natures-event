@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { reportHazard } from '../services/api';
 
-export default function ImageAnalyzer() {
+export default function ImageAnalyzer({ onAnalysisComplete }) {
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -30,8 +30,7 @@ export default function ImageAnalyzer() {
     setLoading(true);
     try {
       // This calls POST /api/report on the FastAPI backend
-      // Sends the image for Groq AI vision analysis (llama-3.2-11b-vision-preview)
-      // Backend requires GROQ_API_KEY in .env to get real AI analysis
+      // Sends the image for Vertex AI Gemini vision analysis
       const data = await reportHazard(
         'User Upload',    // location
         3.139,            // latitude (default: KL)

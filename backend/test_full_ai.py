@@ -10,7 +10,7 @@ async def test_triple_safe():
     # 1. Check which client is currently chosen as Primary
     client, is_vertex = get_gemini_client()
     if client:
-        primary_name = "VERTEX AI (Credits)" if is_vertex else "AI STUDIO (Free Key)"
+        primary_name = "VERTEX AI (Credits)"
         print(f"🥇 Primary Gemini Source: {primary_name}")
     else:
         print("🥇 No Gemini client available.")
@@ -36,8 +36,7 @@ async def test_triple_safe():
         print(f"❌ FAILED: Chatbot error: {e}")
 
     print("\n--- FINAL VERIFICATION ---")
-    print("If you see 'SUCCESS' above, your Gemini problem is SOLVED.")
-    print("Even if your credits are still pending, the system has automatically switched to your backup provider.")
+    print("If you see 'SUCCESS' above, your Vertex Gemini integration is working.")
 
 if __name__ == "__main__":
     asyncio.run(test_triple_safe())

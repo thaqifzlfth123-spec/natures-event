@@ -47,7 +47,7 @@ export async function sendChatMessage(message) {
     console.error("sendChatMessage failed:", err);
     return {
       message,
-      response: "Backend offline — showing mock response. Start the FastAPI server for live Groq AI chat.",
+      response: "Backend offline — showing mock response. Start the FastAPI server for live Vertex AI Gemini chat.",
     };
   }
 }
@@ -78,7 +78,7 @@ export async function reportHazard(location, latitude, longitude, imageFile) {
       location,
       hazard: "Flood",
       severity: "High",
-      analysis: "Backend offline — showing mock analysis. Start the FastAPI server for live Groq AI image analysis.",
+      analysis: "Backend offline — showing mock analysis. Start the FastAPI server for live Vertex AI Gemini image analysis.",
     };
   }
 }
@@ -133,10 +133,6 @@ export async function getAuthenticatedUser(idToken) {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 6. LIVE AI NEWS FEED — GET /api/news
-//    Returns: Array of formatted incident objects from Firestore
-// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // 6. LIVE AI NEWS FEED — GET /api/news
 //    Returns: Array of formatted incident objects from Firestore

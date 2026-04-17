@@ -15,11 +15,9 @@ We have replaced all mock data with a live **Cloud Firestore** backbone.
 - **Live Sync**: Every report submitted is broadcast to all users instantly.
 - **Report Mode**: Click the **REPORT** button on the map to enter tactical data entry mode. Click anywhere on the map to mark a location and submit coordinates directly to the global database.
 
-## 🤖 Triple-Safe AI Architecture
-Ensuring 100% uptime for critical disaster decisions.
+## 🤖 Vertex-Only AI Architecture
+Ensuring reliable disaster decisions using a single Vertex AI source.
 1. **Primary**: Vertex AI (Gemini 2.5 Flash) — Consumes your $300 GCP Credits.
-2. **Secondary**: AI Studio (Gemini 1.5 Flash) — Automatic API key fallback.
-3. **Tertiary**: Groq AI (Llama 3.3) — Final safety net for connection resiliency.
 
 ## 📍 Tactical Iconography
 The map now supports a wider range of incident types:

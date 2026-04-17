@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI App
 app = FastAPI(
     title="Flood Alert System Backend",
-    description="Backend for the Flood Alert App powered by FastAPI with Hybrid AI (Groq + Google Gemini)",
+    description="Backend for the Flood Alert App powered by FastAPI with Vertex AI Gemini",
     version="2.0.0"
 )
 

@@ -1398,7 +1398,7 @@ body {
    MOBILE RESPONSIVE — All screens ≤ 768px
    ============================================================================= */
 @media (max-width: 768px) {
-  /* --- Root & Body: Allow scrolling --- */
+  /* --- Root & Body: Allow vertical scrolling --- */
   html, body, #root {
     overflow: auto;
     overflow-x: hidden;
@@ -1410,12 +1410,13 @@ body {
     font-size: 14px;
   }
 
-  /* --- Dashboard: Vertical Stack --- */
+  /* --- Dashboard: Single-column scrollable stack --- */
   .dashboard {
     position: static;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    height: auto;
     overflow-y: auto;
     overflow-x: hidden;
     gap: 1px;
@@ -1445,10 +1446,10 @@ body {
     height: 6px;
   }
   .header__nav {
-    display: none; /* Hidden — moved to hamburger dropdown */
+    display: none;
   }
   .header__right {
-    display: none; /* Hidden — moved to hamburger dropdown */
+    display: none;
   }
   .header__hamburger {
     display: flex;
@@ -1461,8 +1462,12 @@ body {
     display: flex;
     align-items: center;
   }
+  /* Hide toggle drawer buttons — content stacks inline on mobile */
+  .header__mobile-controls {
+    display: none;
+  }
 
-  /* --- Map: Main Feature — Full Width, Prominent --- */
+  /* --- Map: Full width, prominent --- */
   .map-area {
     order: 1;
     min-height: 45vh;
@@ -1496,34 +1501,56 @@ body {
     padding: 6px 10px;
   }
 
-  /* --- Left Sidebar: Stacked Below Map --- */
+  /* ============================================================
+     CRITICAL FIX: Reset sidebar drawer mode from 1024px breakpoint.
+     The tablet breakpoint applies position:absolute + translateX,
+     which must be fully overridden here for mobile scroll layout.
+     ============================================================ */
+  .left-sidebar,
+  .right-sidebar {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    z-index: auto;
+    box-shadow: none;
+    transition: none;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: visible;
+  }
+
   .left-sidebar {
     order: 2;
-    width: 100%;
-    gap: 1px;
   }
 
-  /* --- Right Sidebar (no chatbot — it's floating) --- */
   .right-sidebar {
     order: 3;
-    width: 100%;
-    gap: 1px;
   }
-  /* Hide chatbot from inline layout — it's a floating overlay on mobile */
+
+  /* Show the VAI chatbot inline — it's also available via the floating FAB */
   .right-sidebar > .panel:first-child {
-    display: none;
+    display: flex;
+    max-height: 350px;
   }
 
-  /* --- Bottom Panels: Full Width Stack --- */
+  /* --- Bottom Panels: Force visible, full-width stack --- */
   .bottom-panels {
+    display: grid !important;
     order: 4;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1px;
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  /* --- Panel Sizing --- */
+  /* --- Panel: Auto height so they size to content --- */
   .panel {
+    height: auto;
     min-height: auto;
+    overflow: visible;
   }
   .panel-header {
     padding: 10px 14px;
@@ -1536,9 +1563,11 @@ body {
   }
   .panel-body {
     padding: 10px 14px;
+    max-height: none;
+    overflow-y: visible;
   }
 
-  /* --- Sensor Grid: Readable sizes --- */
+  /* --- Sensor Grid --- */
   .sensor-item {
     padding: 10px 0;
   }
@@ -1649,7 +1678,11 @@ body {
     font-size: 12px;
   }
 
-  /* --- ChatBot (inside floating overlay) --- */
+  /* --- ChatBot --- */
+  .chat-messages {
+    max-height: 250px;
+    overflow-y: auto;
+  }
   .chat-msg {
     font-size: 13px;
     padding: 9px 12px;
@@ -1705,7 +1738,7 @@ body {
     font-size: 18px;
   }
 
-  /* --- Floating Chatbot: Show on Mobile --- */
+  /* --- Floating Chatbot FAB --- */
   .chat-fab {
     display: block;
     position: fixed;
@@ -1714,7 +1747,7 @@ body {
     z-index: 8000;
   }
 
-  /* --- Map Zoom Controls: Offset below search bar --- */
+  /* --- Map Zoom Controls --- */
   .leaflet-top.leaflet-left {
     top: 50px !important;
   }
@@ -1725,7 +1758,7 @@ body {
     overflow: hidden;
   }
 
-  /* --- Scrollbar (thinner on mobile) --- */
+  /* --- Scrollbar --- */
   ::-webkit-scrollbar {
     width: 3px;
     height: 3px;
@@ -1767,6 +1800,15 @@ body {
 .left-sidebar, .right-sidebar {
   border-right: 1px solid var(--border-color);
   background: rgba(10, 14, 20, 0.85);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bottom-panels {
+  height: 100%;
+  overflow: hidden;
 }
 
 /* --- Metric Card Enhancements --- */
