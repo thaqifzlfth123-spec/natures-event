@@ -19,9 +19,8 @@ const COLORS = {
   flood: { name: 'cyan', hex: '#00d4ff' },
   monsoon: { name: 'gold', hex: '#d4a843' },
   wildfire: { name: 'purple', hex: '#a855f7' },
-  station: { name: 'green', hex: '#00e676' },
-  medical: { name: 'red', hex: '#ff4757' },
-  shelter: { name: 'blue', hex: '#00d4ff' },
+  medical: { name: 'red', hex: '#ff1744' },
+  shelter: { name: 'green', hex: '#00e676' },
   access: { name: 'orange', hex: '#ff9f43' },
 };
 
@@ -31,7 +30,7 @@ function createIcon(colorObj, pulse = false) {
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      ${pulse ? `<div class="sonar-pulse" style="background: var(--accent-${name}-glow)"></div>` : ''}
+      ${pulse ? `<div class="sonar-pulse" style="background: ${hex}44"></div>` : ''}
       <div style="
         width:14px;height:14px;border-radius:50%;
         background:${hex};border:2px solid rgba(255,255,255,0.8);
@@ -49,18 +48,16 @@ const icons = {
   flood: createIcon(COLORS.flood),
   monsoon: createIcon(COLORS.monsoon),
   wildfire: createIcon(COLORS.wildfire),
-  station: createIcon(COLORS.station),
   medical: createIcon(COLORS.medical),
   shelter: createIcon(COLORS.shelter),
+  access: createIcon(COLORS.access),
   // Pulse variants for filtered view
   earthquake_pulse: createIcon(COLORS.earthquake, true),
   flood_pulse: createIcon(COLORS.flood, true),
   monsoon_pulse: createIcon(COLORS.monsoon, true),
   wildfire_pulse: createIcon(COLORS.wildfire, true),
-  station_pulse: createIcon(COLORS.station, true),
   medical_pulse: createIcon(COLORS.medical, true),
   shelter_pulse: createIcon(COLORS.shelter, true),
-  access: createIcon(COLORS.access),
   access_pulse: createIcon(COLORS.access, true),
   user: L.divIcon({
     className: 'user-marker',
@@ -98,11 +95,12 @@ const markers = [
   { pos: [4.5841, 103.4248], type: 'flood',      label: 'Kuantan — Flash Flood Alert',             severity: 'High' },
   { pos: [2.1896, 102.2501], type: 'monsoon',    label: 'Melaka — Heavy Rainfall Advisory',        severity: 'Medium' },
   { pos: [6.1254, 102.2381], type: 'flood',      label: 'Kota Bharu — Kelantan River Surge',       severity: 'High' },
-  { pos: [4.2105, 101.9758], type: 'station',    label: 'Cameron Highlands — Weather Station',     severity: 'Active' },
-  { pos: [3.8077, 103.326],  type: 'station',    label: 'Cherating — Coastal Monitor',             severity: 'Active' },
-  { pos: [2.7456, 101.7072], type: 'flood',      label: 'Shah Alam — Drainage Overflow',           severity: 'Medium' },
-  { pos: [4.4729, 101.3734], type: 'wildfire',   label: 'Gua Musang — Hotspot Detected',           severity: 'High' },
-  { pos: [5.3117, 103.1324], type: 'wildfire',   label: 'Terengganu Forest — FFMC Level Extreme',  severity: 'Medium' },
+  { pos: [3.1412, 101.7588], type: 'medical',    label: 'Hospital Ampang — Emergency Hub',          severity: 'Active' },
+  { pos: [1.5361, 103.7484], type: 'medical',    label: 'Sultanah Aminah — Critical Zone',         severity: 'Alert' },
+  { pos: [3.7915, 103.3241], type: 'shelter',    label: 'SK Beserah — Regional Evacuation Center', severity: 'Safe' },
+  { pos: [5.9328, 116.0645], type: 'shelter',    label: 'KK Sports Complex — Shelter Alpha',       severity: 'Safe' },
+  { pos: [4.4729, 101.3734], type: 'access',     label: 'Gua Musang Highway — Road Closed (Flood)', severity: 'Danger' },
+  { pos: [3.2845, 101.7456], type: 'access',     label: 'Gombak Bypass — Tree Fall Access Block',  severity: 'Awaiting Clearence' },
 ];
 
 // Connection arcs removed as per tactical redesign request
