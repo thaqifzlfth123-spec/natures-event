@@ -319,16 +319,18 @@ async def get_me(token: dict = Depends(verify_token)):
         "email": token.get("email")
     }
 
-@app.get("/api/news", summary="Hybrid AI News Feed (GDACS Global + Bernama MY)")
+@app.get("/api/news", summary="Hybrid AI News Feed (Archived & Real-time)")
 async def get_news_feed():
     import httpx
     import xml.etree.ElementTree as ET
+    from hashlib import md5
     
     gdacs_url = "https://www.gdacs.org/xml/rss.xml"
     bernama_url = "https://bernama.com/en/rssfeed.php"
     headers = {"User-Agent": "flood-alert-system/1.0"}
     
-    news_items = []
+    live_items = []
+    db = get_db()
 
     async with httpx.AsyncClient() as client:
         # 1. FETCH BERNAMA (MALAYSIAN LOCAL)
@@ -337,15 +339,18 @@ async def get_news_feed():
             if res_my.status_code == 200:
                 root = ET.fromstring(res_my.content)
                 items = root.findall(".//item")
-                for item in items[:4]: # Top 4 local
+                for item in items[:6]:
                     title = item.find("title").text if item.find("title") is not None else "Local Update"
                     link = item.find("link").text if item.find("link") is not None else "#"
-                    news_items.append({
+                    # Include current timestamp for fresh items
+                    live_items.append({
+                        "id": md5(link.encode()).hexdigest(),
                         "time": "MALAYSIA NEWS",
                         "text": title,
                         "url": link,
                         "tag": "MY: BERNAMA",
-                        "tagColor": "var(--accent-cyan)"
+                        "tagColor": "var(--accent-cyan)",
+                        "timestamp": datetime.now(timezone.utc)
                     })
         except Exception as e:
             logger.error(f"Bernama Fetch failed: {e}")
@@ -356,23 +361,75 @@ async def get_news_feed():
             if res_intl.status_code == 200:
                 root = ET.fromstring(res_intl.content)
                 items = root.findall(".//item")
-                for item in items[:4]: # Top 4 global
+                for item in items[:6]:
                     title = item.find("title").text if item.find("title") is not None else "Global Alert"
                     link = item.find("link").text if item.find("link") is not None else "#"
-                    # Beautify GDACS
                     clean_title = title.replace("Green ", "").replace("Orange ", "🚨 ").replace("Red ", "🔥 ")
-                    news_items.append({
+                    live_items.append({
+                        "id": md5(link.encode()).hexdigest(),
                         "time": "INTERNATIONAL",
                         "text": clean_title,
                         "url": link,
                         "tag": "GLOBAL ALERT",
-                        "tagColor": "var(--accent-red)"
+                        "tagColor": "var(--accent-red)",
+                        "timestamp": datetime.now(timezone.utc)
                     })
         except Exception as e:
             logger.error(f"GDACS Fetch failed: {e}")
 
-    # Fallback if both fail
-    if not news_items:
-        return [{"time": "OFFLINE", "text": "Disaster feeds temporarily unavailable.", "url": "#", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
+    # 3. ARCHIVE TO FIRESTORE (DE-DUPLICATED)
+    if db:
+        try:
+            batch = db.batch()
+            for item in live_items:
+                doc_ref = db.collection("news_archive").document(item["id"])
+                # Only save if URL is valid
+                if item["url"] != "#":
+                    # We use set with merge=True to update timestamp but keep old ones if needed
+                    batch.set(doc_ref, {
+                        "text": item["text"],
+                        "url": item["url"],
+                        "tag": item["tag"],
+                        "tagColor": item["tagColor"],
+                        "timestamp": item["timestamp"],
+                        "source": "RSS_AUTO"
+                    }, merge=True)
+            batch.commit()
+        except Exception as e:
+            logger.error(f"Firestore Archive Failed: {e}")
 
-    return news_items
+    # 4. RETRIEVE BEST DATA (ARCHIVE-FIRST)
+    try:
+        if db:
+            # Query the archive for the top 12 most recent items across history
+            archive_ref = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(12).stream()
+            archived_items = []
+            for doc in archive_ref:
+                d = doc.to_dict()
+                # Format time string for UI (e.g. 2 DAYS AGO if old)
+                ts = d.get("timestamp")
+                time_str = "LIVE DATA"
+                if ts:
+                    diff = datetime.now(timezone.utc) - ts
+                    if diff > timedelta(hours=24):
+                        time_str = f"{diff.days} DAYS AGO"
+                    elif diff > timedelta(hours=1):
+                        time_str = f"{int(diff.seconds // 3600)}H AGO"
+                    else:
+                        time_str = "RECENT"
+                
+                archived_items.append({
+                    "time": time_str,
+                    "text": d.get("text"),
+                    "url": d.get("url"),
+                    "tag": d.get("tag"),
+                    "tagColor": d.get("tagColor")
+                })
+            
+            if archived_items:
+                return archived_items
+    except Exception as e:
+        logger.error(f"Archive Retrieval Failed: {e}")
+
+    # Fallback to live items if DB fails
+    return live_items if live_items else [{"time": "OFFLINE", "text": "Disaster feeds temporarily unavailable.", "url": "#", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
