@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Header({ onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark, isMobile }) {
   const [time, setTime] = useState(new Date());
   const [activeRegion, setActiveRegion] = useState('REGIONS');
   const [menuOpen, setMenuOpen] = useState(false);
+  const { language, toggleLanguage, t } = useLanguage();
 
   // Auto-update timestamp every second
   useEffect(() => {
@@ -11,21 +13,25 @@ export default function Header({ onLoginClick, onThemeToggle, onToggleLeft, onTo
     return () => clearInterval(timer);
   }, []);
 
-  const formattedTime = time.toLocaleString('en-MY', {
+  const formattedTime = time.toLocaleString(language === 'en' ? 'en-MY' : 'ms-MY', {
     year: 'numeric', month: 'short', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false
   });
 
-  const regions = ['REGIONS', 'DISTRICT', 'MY LOCATIONS'];
+  const regions = [
+    { key: 'regions', label: t('regions') },
+    { key: 'district', label: t('district') },
+    { key: 'myLocations', label: t('myLocations') }
+  ];
 
   return (
     <header className="header">
       {/* Logo */}
       <div className="header__logo">
         <div className="header__logo-icon" />
-        <span style={{ letterSpacing: '4px', background: 'linear-gradient(90deg, #fff, #8899aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          DISASTER MONITOR
+        <span style={{ letterSpacing: '4px', background: 'linear-gradient(90deg, #fff, #8899aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>
+          {t('logo')}
         </span>
       </div>
 
@@ -33,21 +39,31 @@ export default function Header({ onLoginClick, onThemeToggle, onToggleLeft, onTo
       <nav className="header__nav">
         {regions.map(r => (
           <button
-            key={r}
-            className={`header__nav-btn ${activeRegion === r ? 'header__nav-btn--active' : ''}`}
-            onClick={() => setActiveRegion(r)}
+            key={r.key}
+            className={`header__nav-btn ${activeRegion === r.key ? 'header__nav-btn--active' : ''}`}
+            onClick={() => setActiveRegion(r.key)}
           >
-            {r}
+            {r.label}
           </button>
         ))}
       </nav>
 
-      {/* Right Section: Timestamp, Status, Login, Theme (Desktop) */}
+      {/* Right Section: Timestamp, Status, Login, Theme, Lang (Desktop) */}
       <div className="header__right">
-        <span className="header__timestamp telemetry">LAST SYNC: {formattedTime}</span>
-        <span className="header__status header__status--high">HIGH ALERT</span>
+        <span className="header__timestamp telemetry">{t('lastSync')}: {formattedTime}</span>
+        <span className="header__status header__status--high">{t('highAlert')}</span>
+        
+        {/* Language Toggle */}
+        <button 
+          className="header__login-btn" 
+          onClick={toggleLanguage}
+          style={{ borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)', minWidth: '60px' }}
+        >
+          {language === 'en' ? 'EN' : 'BM'}
+        </button>
+
         <button className="header__login-btn" onClick={onLoginClick}>
-          LOGIN / REGISTER
+          {t('loginRegister')}
         </button>
         <button className="header__theme-btn" onClick={onThemeToggle} title="Toggle theme">
           {isDark ? '☀️' : '🌙'}
@@ -84,19 +100,22 @@ export default function Header({ onLoginClick, onThemeToggle, onToggleLeft, onTo
         <nav className="header__nav">
           {regions.map(r => (
             <button
-              key={r}
-              className={`header__nav-btn ${activeRegion === r ? 'header__nav-btn--active' : ''}`}
-              onClick={() => { setActiveRegion(r); setMenuOpen(false); }}
+              key={r.key}
+              className={`header__nav-btn ${activeRegion === r.key ? 'header__nav-btn--active' : ''}`}
+              onClick={() => { setActiveRegion(r.key); setMenuOpen(false); }}
             >
-              {r}
+              {r.label}
             </button>
           ))}
         </nav>
         <div className="header__right">
-          <span className="header__timestamp">LAST SYNC: {formattedTime}</span>
-          <span className="header__status header__status--high">HIGH ALERT</span>
+          <button className="header__nav-btn" style={{ width: '100%' }} onClick={toggleLanguage}>
+             LANGUAGE: {language === 'en' ? 'ENGLISH' : 'BAHASA MELAYU'}
+          </button>
+          <span className="header__timestamp">{t('lastSync')}: {formattedTime}</span>
+          <span className="header__status header__status--high">{t('highAlert')}</span>
           <button className="header__login-btn" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
-            LOGIN / REGISTER
+            {t('loginRegister')}
           </button>
           <button className="header__theme-btn" onClick={onThemeToggle} title="Toggle theme">
             {isDark ? '☀️' : '🌙'}

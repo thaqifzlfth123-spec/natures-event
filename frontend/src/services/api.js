@@ -168,3 +168,18 @@ function getTacticalCache() {
     { time: '1 WEEK AGO', text: 'MET MALAYSIA — Tropical Storm Warning: North Borneo coastal areas advised of high waves.', url: 'https://www.met.gov.my/en/berita/ts-warning-borneo/', tag: 'WEATHER ALERT', tagColor: 'var(--accent-gold)' }
   ];
 }
+
+/**
+ * Fetches AI-generated Strategic Situation Report (SITREP)
+ * @param {string} lang - 'en' or 'bm'
+ */
+export async function getStrategicAdvisory(lang = 'en') {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/advisory?lang=${lang}`);
+    if (!res.ok) throw new Error("Strategic Advisory API returned error");
+    return await res.json();
+  } catch (error) {
+    console.error("Advisory Error:", error);
+    return { advisory: lang === 'en' ? "Strategic advisory triage failed." : "Gagal triaj penasihat strategik." };
+  }
+}

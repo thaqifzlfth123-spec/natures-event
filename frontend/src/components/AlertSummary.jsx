@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getLiveNews } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AlertSummary() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchNews() {
@@ -13,7 +15,7 @@ export default function AlertSummary() {
           setNews(liveNews);
         } else {
           setNews([
-            { time: 'SEARCHING', text: 'Connecting to official news channels...', url: '#', tag: 'SYSTEM' },
+            { time: t('newsSearching'), text: t('newsSearching'), url: '#', tag: 'SYSTEM' },
           ]);
         }
       } catch (error) {
@@ -25,14 +27,14 @@ export default function AlertSummary() {
     fetchNews();
     const intervalId = setInterval(fetchNews, 60000); // 1 minute refresh for official data
     return () => clearInterval(intervalId);
-  }, []);
+  }, [t]);
 
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Official News Center</span>
+        <span className="panel-header__title">{t('newsCenter')}</span>
         <span className="panel-header__badge panel-header__badge--alert">
-          {loading ? 'CONNECTING...' : 'LIVE FEED'}
+          {loading ? 'CONNECTING...' : t('liveFeed')}
         </span>
       </div>
       <div className="panel-body">
@@ -40,7 +42,7 @@ export default function AlertSummary() {
           <div className="alert-item fade-in" key={i} style={{ animationDelay: `${i * 0.1}s` }}>
             <div className="alert-item__header">
               <span className="alert-item__type" style={{ color: n.tagColor || 'var(--accent-gold)' }}>
-                [{n.tag || 'OFFICIAL UPDATE'}]
+                [{n.tag === 'SYSTEM' ? 'SYSTEM' : t('officialUpdate')}]
               </span>
               <span className="alert-item__time">{n.time}</span>
             </div>
@@ -74,7 +76,7 @@ export default function AlertSummary() {
                   onMouseOver={(e) => e.target.style.background = 'var(--accent-cyan-dim)'}
                   onMouseOut={(e) => e.target.style.background = 'transparent'}
                 >
-                  CLICK HERE
+                  {t('clickHere')}
                 </a>
               )}
             </div>
@@ -82,7 +84,7 @@ export default function AlertSummary() {
         ))}
         {news.length === 0 && !loading && (
           <div className="text-muted" style={{ fontSize: '10px', textAlign: 'center', marginTop: '20px' }}>
-            Official channels currently quiet.
+            {t('newsQuiet')}
           </div>
         )}
       </div>

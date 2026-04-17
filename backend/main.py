@@ -433,3 +433,51 @@ async def get_news_feed():
 
     # Fallback to live items if DB fails
     return live_items if live_items else [{"time": "OFFLINE", "text": "Disaster feeds temporarily unavailable.", "url": "#", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
+
+@app.get("/api/advisory")
+async def get_strategic_advisory(lang: str = "en"):
+    """
+    TACTICAL SITREP ENGINE:
+    Generates a mission-briefing summary based on the latest 10 news items in the archive.
+    Uses Gemini AI to consolidate data into a strategic situation report.
+    """
+    if not db:
+        return {"advisory": "Strategic advisory offline. Database connection required." if lang == "en" else "Penasihat strategik luar talian. Sambungan pangkalan data diperlukan."}
+
+    try:
+        # Fetch the last 10 news items for context
+        docs = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(10).stream()
+        news_context = []
+        for doc in docs:
+            d = doc.to_dict()
+            news_context.append(f"- {d.get('text')} ({d.get('tag')})")
+        
+        if not news_context:
+            return {"advisory": "Intelligence channels quiet. No immediate strategic threats identified." if lang == "en" else "Saluran perisikan tenang. Tiada ancaman strategik dikesan."}
+
+        context_str = "\n".join(news_context)
+        prompt = f"""
+        ACT AS: A National Disaster Intelligence Officer (NADMA Malaysia).
+        TASK: Provide a high-density Strategic Situation Report (SITREP) based on these news items:
+        
+        {context_str}
+        
+        REQUIREMENTS:
+        1. Keep it under 150 words.
+        2. Use professional, tactical tone.
+        3. Identify priority regions and response actions.
+        4. Language: {'English' if lang == 'en' else 'Bahasa Melayu'}.
+        5. DO NOT use emojis. Format as plain tactical text.
+        """
+        
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        
+        return {"advisory": response.text.strip()}
+    except Exception as e:
+        logger.error(f"Advisory Generation Failed: {e}")
+        return {"advisory": "Strategic triage error. Intelligence processing interrupted." if lang == "en" else "Ralat triaj strategik. Pemprosesan perisikan terganggu."}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
