@@ -1,57 +1,51 @@
 import { useState, useEffect } from 'react';
-import { getLiveNews } from '../services/api';
 
-export default function NewsFeed() {
-  const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function NewsFeed({ reports = [] }) {
+  const [displayReports, setDisplayReports] = useState([]);
 
   useEffect(() => {
-    async function fetchNews() {
-      try {
-        const liveNews = await getLiveNews();
-        if (liveNews && liveNews.length > 0) {
-          setNews(liveNews);
-        } else {
-          // Fallback if database is empty or backend is offline
-          setNews([
-            { time: 'JUST NOW', text: 'Waiting for live incident reports...', tag: 'SYSTEM', tagColor: 'var(--accent-blue)' },
-            { time: '1 HOUR AGO', text: 'Backend connected. Database synchronization active.', tag: 'NODE', tagColor: 'var(--accent-green)' },
-          ]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch news:", error);
-      } finally {
-        setLoading(false);
-      }
+    // Take Top 8 most recent community incidents
+    if (reports && reports.length > 0) {
+      setDisplayReports(reports.slice(0, 8));
     }
-    fetchNews();
-    
-    // Poll every 30 seconds for live updates
-    const intervalId = setInterval(fetchNews, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+  }, [reports]);
 
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">AI Live News Feed</span>
+        <span className="panel-header__title">Community Incidents</span>
         <span className="panel-header__badge panel-header__badge--live">
-          {loading ? 'SYNCING POSTS...' : 'LIVE'}
+          {reports.length > 0 ? 'USER REPORTED' : 'SCANNING...'}
         </span>
       </div>
       <div className="panel-body">
-        {news.map((n, i) => (
-          <div className="news-item fade-in" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
-            <div className="news-item__time">{n.time}</div>
-            <div className="news-item__text">{n.text}</div>
-            <span
-              className="news-item__tag"
-              style={{ background: `${n.tagColor}22`, color: n.tagColor }}
-            >
-              {n.tag}
-            </span>
+        {displayReports.length > 0 ? (
+          displayReports.map((r, i) => (
+            <div className="news-item fade-in" key={r.id || i} style={{ animationDelay: `${i * 0.08}s` }}>
+              <div className="news-item__time">
+                {r.timestamp?.seconds 
+                  ? new Date(r.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                  : 'JUST NOW'}
+              </div>
+              <div className="news-item__text">
+                <strong style={{ color: 'var(--accent-cyan)' }}>{r.hazard || r.type}:</strong> {r.location}
+              </div>
+              <span
+                className="news-item__tag"
+                style={{ 
+                  background: r.severity === 'High' ? 'rgba(255,71,87,0.15)' : 'rgba(0,212,255,0.15)', 
+                  color: r.severity === 'High' ? 'var(--accent-red)' : 'var(--accent-cyan)' 
+                }}
+              >
+                {r.severity}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="text-muted" style={{ fontSize: '10px', textAlign: 'center', marginTop: '20px' }}>
+            No community incidents reported in the last 24h.
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

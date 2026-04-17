@@ -113,10 +113,10 @@ export default function App() {
         isMobile={isMobile}
       />
 
-      {/* Left Sidebar: Risk Gauges + AI Live News Feed */}
+      {/* Left Sidebar: Risk Gauges + Community Incidents */}
       <div className={`left-sidebar glass scanline ${leftOpen ? 'left-sidebar--open' : ''}`}>
         <RiskGauges />
-        <NewsFeed />
+        <NewsFeed reports={liveReports} />
       </div>
 
       {/* Central Map View — ErrorBoundary must inherit grid-area */}

@@ -337,11 +337,13 @@ async def get_news_feed():
             news_items = []
             for item in items[:8]:  # Limit to 8 latest alerts
                 title = item.find("title").text if item.find("title") is not None else "Unknown Alert"
+                link = item.find("link").text if item.find("link") is not None else "#"
                 # Simplify and beautify the GDACS titles
                 clean_title = title.replace("Green ", "").replace("Orange ", "🚨 ").replace("Red ", "🔥 ")
                 news_items.append({
                     "time": "LIVE DATA", 
                     "text": clean_title, 
+                    "url": link,
                     "tag": "GLOBAL ALERT", 
                     "tagColor": "var(--accent-red)"
                 })

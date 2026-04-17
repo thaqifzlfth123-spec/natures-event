@@ -1,91 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getLiveNews } from '../services/api';
 
 export default function AlertSummary() {
-  const [filter, setFilter] = useState('latest');
-  
-  const allAlerts = [
-    {
-      type: 'FLASH FLOOD WARNING',
-      desc: 'Klang Valley — Water rising rapidly. Residents near Sungai Klang advised to evacuate.',
-      time: '3H AGO',
-      urgency: 'urgent',
-    },
-    {
-      type: 'MONSOON SURGE ADVISORY',
-      desc: 'East coast states — Heavy continuous rain expected for 48 hours.',
-      time: '5H AGO',
-      urgency: 'warning',
-    },
-    {
-      type: 'LANDSLIDE RISK',
-      desc: 'Cameron Highlands — Slope instability detected near Brinchang.',
-      time: '8H AGO',
-      urgency: 'warning',
-    },
-    {
-      type: 'SEISMIC ACTIVITY',
-      desc: 'Ranau, Sabah — Magnitude 2.1 tremor detected. No damage reported.',
-      time: '12H AGO',
-      urgency: 'info',
-    },
-    {
-      type: 'HAZE ALERT',
-      desc: 'Muar, Johor — API reading 158 (Unhealthy). Limit outdoor activities.',
-      time: '14H AGO',
-      urgency: 'warning',
-    },
-    {
-      type: 'RIVER LEVEL CRITICAL',
-      desc: 'Sungai Kelantan at Guillemard Bridge — 8.2m (Danger: 9.0m). Monitoring active.',
-      time: '1D AGO',
-      urgency: 'urgent',
-    },
-  ];
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const displayAlerts = filter === 'urgent' 
-    ? allAlerts.filter(a => a.urgency === 'urgent').slice(0, 3)
-    : allAlerts.slice(0, 3);
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const liveNews = await getLiveNews();
+        if (liveNews && liveNews.length > 0) {
+          setNews(liveNews);
+        } else {
+          setNews([
+            { time: 'SEARCHING', text: 'Connecting to official news channels...', url: '#', tag: 'SYSTEM' },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch news:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNews();
+    const intervalId = setInterval(fetchNews, 60000); // 1 minute refresh for official data
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Alert Summary</span>
+        <span className="panel-header__title">Official News Center</span>
         <span className="panel-header__badge panel-header__badge--alert">
-          {allAlerts.filter(a => a.urgency === 'urgent').length} URGENT
+          {loading ? 'CONNECTING...' : 'LIVE FEED'}
         </span>
       </div>
       <div className="panel-body">
-        {/* Tactical Toggle */}
-        <div className="alert-toggle">
-          <button 
-            className={`alert-toggle__btn ${filter === 'latest' ? 'alert-toggle__btn--active' : ''}`}
-            onClick={() => setFilter('latest')}
-          >
-            LATEST
-          </button>
-          <button 
-            className={`alert-toggle__btn ${filter === 'urgent' ? 'alert-toggle__btn--active' : ''}`}
-            onClick={() => setFilter('urgent')}
-          >
-            URGENT
-          </button>
-        </div>
-
-        {displayAlerts.map((a, i) => (
-          <div className="alert-item fade-in" key={i} style={{ animationDelay: `${i * 0.06}s` }}>
+        {news.slice(0, 5).map((n, i) => (
+          <div className="alert-item fade-in" key={i} style={{ animationDelay: `${i * 0.1}s` }}>
             <div className="alert-item__header">
-              <span className="alert-item__type">{a.type}</span>
-              <span className="alert-item__time">{a.time}</span>
+              <span className="alert-item__type" style={{ color: 'var(--accent-gold)' }}>[OFFICIAL UPDATE]</span>
+              <span className="alert-item__time">{n.time}</span>
             </div>
-            <div className="alert-item__desc">{a.desc}</div>
-            <span className={`alert-item__urgency alert-item__urgency--${a.urgency}`}>
-              {a.urgency}
-            </span>
+            <div className="alert-item__desc" style={{ marginBottom: '8px' }}>{n.text}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="alert-item__urgency alert-item__urgency--info">
+                {n.tag}
+              </span>
+              {n.url && n.url !== '#' && (
+                <a 
+                  href={n.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="telemetry"
+                  style={{ 
+                    fontSize: '9px', 
+                    color: 'var(--accent-cyan)', 
+                    textDecoration: 'none',
+                    fontWeight: '700',
+                    letterSpacing: '1px',
+                    border: '1px solid var(--accent-cyan-dim)',
+                    padding: '2px 8px',
+                    borderRadius: '2px'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = 'var(--accent-cyan-dim)'}
+                  onMouseOut={(e) => e.target.style.background = 'transparent'}
+                >
+                  CLICK HERE
+                </a>
+              )}
+            </div>
           </div>
         ))}
-        {displayAlerts.length === 0 && (
+        {news.length === 0 && !loading && (
           <div className="text-muted" style={{ fontSize: '10px', textAlign: 'center', marginTop: '20px' }}>
-            No active urgent alerts in this sector.
+            Official channels currently quiet.
           </div>
         )}
       </div>
