@@ -41,21 +41,21 @@ export default function ChatBot() {
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Gemini AI Chatbot</span>
-        <span className="panel-header__badge panel-header__badge--live">ACTIVE</span>
+        <span className="panel-header__title">VAI — Tactical Strategy Agent</span>
+        <span className="panel-header__badge panel-header__badge--live">VERTEX AI ACTIVE</span>
       </div>
 
       {/* Chat Messages */}
       <div className="chat-messages">
         {messages.map((msg, i) => (
           <div key={i} className={`chat-msg chat-msg--${msg.sender} fade-in`}>
-            <div className="chat-msg__sender">{msg.sender === 'ai' ? 'GEMINI AI' : 'YOU'}</div>
+            <div className="chat-msg__sender">{msg.sender === 'ai' ? 'VAI' : 'YOU'}</div>
             {msg.text}
           </div>
         ))}
         {loading && (
           <div className="chat-msg chat-msg--ai">
-            <div className="chat-msg__sender">GEMINI AI</div>
+            <div className="chat-msg__sender">VAI</div>
             <span className="spinner" /> Thinking...
           </div>
         )}

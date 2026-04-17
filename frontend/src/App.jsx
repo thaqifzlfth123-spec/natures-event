@@ -113,10 +113,17 @@ export default function App() {
         isMobile={isMobile}
       />
 
-      {/* Left Sidebar: Risk Gauges + Community Incidents */}
+      {/* Left Sidebar: Risk Gauges + Community Incidents + Image Analyzer */}
       <div className={`left-sidebar glass scanline ${leftOpen ? 'left-sidebar--open' : ''}`}>
         <RiskGauges />
         <NewsFeed reports={liveReports} />
+        <ErrorBoundary fallback="Image Analyzer unavailable">
+          <ImageAnalyzer onAnalysisComplete={(data) => {
+            if (data.evacuation_target) {
+              setEvacuationTarget(data.evacuation_target);
+            }
+          }} />
+        </ErrorBoundary>
       </div>
 
       {/* Central Map View — ErrorBoundary must inherit grid-area */}
@@ -131,13 +138,7 @@ export default function App() {
         />
       </ErrorBoundary>
 
-      {/* Right Sidebar: Chatbot (hidden on mobile) + Alert Summary */}
-      <div className={`right-sidebar glass scanline ${rightOpen ? 'right-sidebar--open' : ''}`}>
-        <ChatBot />
-        <AlertSummary />
-      </div>
-
-      {/* Bottom Panel Group */}
+      {/* Bottom Panel Group: Location | VAI Chatbot | Official News */}
       <div className="bottom-panels glass">
         <ErrorBoundary fallback="Location Data unavailable">
           <LocationData 
@@ -147,13 +148,8 @@ export default function App() {
             activeFilter={activeFilter}
           />
         </ErrorBoundary>
-        <ErrorBoundary fallback="Image Analyzer unavailable">
-          <ImageAnalyzer onAnalysisComplete={(data) => {
-            if (data.evacuation_target) {
-              setEvacuationTarget(data.evacuation_target);
-            }
-          }} />
-        </ErrorBoundary>
+        <ChatBot />
+        <AlertSummary />
       </div>
 
       {/* Floating Chatbot FAB — visible only on mobile (CSS controls display) */}
