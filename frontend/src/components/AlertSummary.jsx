@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getLiveNews } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AlertSummary() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchNews() {
@@ -12,7 +14,9 @@ export default function AlertSummary() {
         if (liveNews && liveNews.length > 0) {
           setNews(liveNews);
         } else {
-          setNews([]);
+          setNews([
+            { time: t('newsSearching'), text: t('newsSearching'), url: '#', tag: 'SYSTEM' },
+          ]);
         }
       } catch (error) {
         console.error("Failed to fetch news:", error);
@@ -24,14 +28,14 @@ export default function AlertSummary() {
     fetchNews();
     const intervalId = setInterval(fetchNews, 60000); // 1 minute refresh for official data
     return () => clearInterval(intervalId);
-  }, []);
+  }, [t]);
 
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Official News Center</span>
+        <span className="panel-header__title">{t('newsCenter')}</span>
         <span className="panel-header__badge panel-header__badge--alert">
-          {loading ? 'CONNECTING...' : 'LIVE FEED'}
+          {loading ? 'CONNECTING...' : t('liveFeed')}
         </span>
       </div>
       <div className="panel-body">
@@ -58,11 +62,11 @@ export default function AlertSummary() {
               </div>
               <div className="alert-item__desc" style={{ marginBottom: '8px' }}>{n.text}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span 
-                  className="alert-item__urgency" 
-                  style={{ 
-                    background: `${n.tagColor || 'var(--accent-cyan)'}22`, 
-                    color: n.tagColor || 'var(--accent-cyan)' 
+                <span
+                  className="alert-item__urgency"
+                  style={{
+                    background: `${n.tagColor || 'var(--accent-cyan)'}22`,
+                    color: n.tagColor || 'var(--accent-cyan)'
                   }}
                 >
                   {n.tag}
@@ -70,9 +74,9 @@ export default function AlertSummary() {
                 {hasLink && (
                   <span
                     className="telemetry"
-                    style={{ 
-                      fontSize: '9px', 
-                      color: 'var(--accent-cyan)', 
+                    style={{
+                      fontSize: '9px',
+                      color: 'var(--accent-cyan)',
                       fontWeight: '700',
                       letterSpacing: '1px',
                       border: '1px solid var(--accent-cyan-dim)',
@@ -90,7 +94,7 @@ export default function AlertSummary() {
         })}
         {news.length === 0 && !loading && (
           <div className="text-muted" style={{ fontSize: '10px', textAlign: 'center', marginTop: '20px' }}>
-            Official channels currently quiet.
+            {t('newsQuiet')}
           </div>
         )}
       </div>

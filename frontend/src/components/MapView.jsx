@@ -5,8 +5,9 @@ import 'leaflet/dist/leaflet.css';
 import { db } from '../services/firebaseConfig';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { fetchExternalHazards } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
-// Fix default marker icons in webpack/vite bundlers
+// Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -14,7 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Theme-aligned colors for markers and pulses
 const COLORS = {
   earthquake: { name: 'red', hex: '#ff4757' },
   flood: { name: 'cyan', hex: '#00d4ff' },
@@ -29,17 +29,28 @@ function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// Custom colored marker icons with optional sonar pulse
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function createIcon(colorObj, pulse = false) {
-  const { name, hex } = colorObj;
+  const { hex } = colorObj;
   return L.divIcon({
     className: 'custom-marker',
     html: `
@@ -64,7 +75,6 @@ const icons = {
   medical: createIcon(COLORS.medical),
   shelter: createIcon(COLORS.shelter),
   access: createIcon(COLORS.access),
-  // Pulse variants for filtered view
   earthquake_pulse: createIcon(COLORS.earthquake, true),
   flood_pulse: createIcon(COLORS.flood, true),
   monsoon_pulse: createIcon(COLORS.monsoon, true),
@@ -74,25 +84,7 @@ const icons = {
   access_pulse: createIcon(COLORS.access, true),
   user: L.divIcon({
     className: 'user-marker',
-    html: `
-      <div class="sonar-pulse"></div>
-      <div style="
-        width: 24px; height: 24px; 
-        background: #00d4ff; 
-        border: 3px solid #fff; 
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
-      ">
-        <div style="
-          width: 8px; height: 8px; 
-          background: #fff; 
-          border-radius: 50%;
-          transform: rotate(45deg);
-        "></div>
-      </div>
-    `,
+    html: `<div class="sonar-pulse"></div><div style="width:24px;height:24px;background:#00d4ff;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(0,212,255,0.6);"><div style="width:8px;height:8px;background:#fff;border-radius:50%;transform:rotate(45deg);"></div></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 24],
     popupAnchor: [0, -24],
@@ -105,21 +97,12 @@ const markers = [];
 // Component to fly to searched location or reset view
 function FlyTo({ target }) {
   const map = useMap();
-  if (target) {
-    map.flyTo(target.coords, target.zoom, { duration: 1.5 });
-  }
+  if (target) map.flyTo(target.coords, target.zoom, { duration: 1.5 });
   return null;
 }
 
-// Component to handle map clicks for reporting
 function MapEvents({ onMapClick, isReporting }) {
-  useMapEvents({
-    click(e) {
-      if (isReporting) {
-        onMapClick(e.latlng);
-      }
-    },
-  });
+  useMapEvents({ click(e) { if (isReporting) onMapClick(e.latlng); } });
   return null;
 }
 
@@ -132,8 +115,6 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
   const [flyTarget, setFlyTarget] = useState(null);
   const [mapMode, setMapMode] = useState('auto'); // 'auto' | 'street'
   const [isScanning, setIsScanning] = useState(false);
-  
-  // REPORTING STATE
   const [isReporting, setIsReporting] = useState(false);
   const [reportCoords, setReportCoords] = useState(null);
   const [reportType, setReportType] = useState('flood');
@@ -142,18 +123,18 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
   // React to unified search from the Header component
   useEffect(() => {
     if (!sharedLocation) return;
-    
+
     const fetchCoordsAndFly = async () => {
       setIsScanning(true);
       setTimeout(() => setIsScanning(false), 3000); // 3s scanning animation
       try {
-        const geoQuery = sharedLocation.toLowerCase().includes('malaysia') 
-          ? sharedLocation 
+        const geoQuery = sharedLocation.toLowerCase().includes('malaysia')
+          ? sharedLocation
           : `${sharedLocation}, Malaysia`;
-          
+
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(geoQuery)}&limit=1`);
         const data = await res.json();
-        
+
         if (data && data.length > 0) {
           const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
           setFlyTarget({ coords, zoom: 12 });
@@ -162,51 +143,32 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
         console.error('Geocoding failed for unified search:', err);
       }
     };
-    
+
     fetchCoordsAndFly();
   }, [sharedLocation]);
 
   const handleReportSubmit = async () => {
     if (!reportCoords) return;
     try {
-      await addDoc(collection(db, "reports"), {
-        type: reportType,
-        text: reportText,
-        pos: [reportCoords.lat, reportCoords.lng],
-        timestamp: serverTimestamp(),
-        severity: 'High'
-      });
-      
-      // Cleanup
+      await addDoc(collection(db, "reports"), { type: reportType, text: reportText, pos: [reportCoords.lat, reportCoords.lng], timestamp: serverTimestamp(), severity: 'High' });
       setIsReporting(false);
       setReportCoords(null);
       setReportText('');
-    } catch (err) {
-      console.error('Failed to submit report:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleResetClick = () => {
     setFlyTarget({ coords: [4.2105, 101.9758], zoom: 6 });
-    if (typeof onReset === 'function') {
-      onReset();
-    }
+    if (typeof onReset === 'function') onReset();
   };
 
-  // RainViewer Radar Tiles Logic
   const [radarPath, setRadarPath] = useState(null);
   const [showRadar, setShowRadar] = useState(false);
-
   useEffect(() => {
     if (showRadar && !radarPath) {
-      fetch('https://api.rainviewer.com/public/weather-maps.json')
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.radar && data.radar.past) {
-            const latest = data.radar.past[data.radar.past.length - 1];
-            setRadarPath(latest.path);
-          }
-        });
+      fetch('https://api.rainviewer.com/public/weather-maps.json').then(res => res.json()).then(data => {
+        if (data?.radar?.past) setRadarPath(data.radar.past[data.radar.past.length - 1].path);
+      });
     }
   }, [showRadar, radarPath]);
 
@@ -215,7 +177,7 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
   // FIX #2: Resolve tile URL based on mode + theme
   const resolvedTileUrl =
     mapMode === 'street' ? STREET_TILES :
-    isDark ? DARK_TILES : LIGHT_TILES;
+      isDark ? DARK_TILES : LIGHT_TILES;
 
   // FIX #1: Build a stable key so MapContainer re-mounts when tiles change
   const mapKey = `${mapMode}-${isDark ? 'dark' : 'light'}`;
@@ -225,13 +187,12 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
   useEffect(() => {
     const q = query(collection(db, "reports"), orderBy("timestamp", "desc"));
     return onSnapshot(q, (snapshot) => {
-      const reports = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, label: `REPORT: ${doc.data().text || doc.data().type}` }));
-      setLiveMarkers(reports);
+      setLiveMarkers(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, label: `REPORT: ${doc.data().text || doc.data().type}` })));
     });
   }, []);
 
   const [externalMarkers, setExternalMarkers] = useState([]);
-  
+
   useEffect(() => {
     async function loadExternalData() {
       const data = await fetchExternalHazards();
@@ -245,7 +206,7 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
 
           let severity = 'Medium';
           if (item.mag && item.mag >= 5.0) severity = 'High';
-          
+
           return {
             id: `ext-${Math.random()}`,
             pos: [item.lat, item.lon],
@@ -260,19 +221,18 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
     loadExternalData();
   }, []);
 
-  const arcs = []; // Tactical connection arcs (placeholder for future sensor mesh)
   const allRawMarkers = [...markers, ...liveMarkers, ...externalMarkers];
-  
+
   const allMarkers = allRawMarkers.filter(m => {
     if (activeRegion === 'MY LOCATIONS') {
       let isWithin5km = false;
       if (Array.isArray(m.pos) && m.pos.length === 2) {
-         if (userCoords && getDistance(m.pos[0], m.pos[1], userCoords.lat, userCoords.lon) <= 5) isWithin5km = true;
-         if (savedLocations && savedLocations.length > 0) {
-           savedLocations.forEach(loc => {
-             if (loc.lat && loc.lon && getDistance(m.pos[0], m.pos[1], loc.lat, loc.lon) <= 5) isWithin5km = true;
-           });
-         }
+        if (userCoords && getDistance(m.pos[0], m.pos[1], userCoords.lat, userCoords.lon) <= 5) isWithin5km = true;
+        if (savedLocations && savedLocations.length > 0) {
+          savedLocations.forEach(loc => {
+            if (loc.lat && loc.lon && getDistance(m.pos[0], m.pos[1], loc.lat, loc.lon) <= 5) isWithin5km = true;
+          });
+        }
       }
       return isWithin5km;
     }
@@ -281,30 +241,29 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
 
   return (
     <div className={`map-area`}>
-      {/* CyberScan Overlay */}
       {isScanning && <div className="radar-scan" />}
-      
+
       {/* Map Mode Switcher — FIX #1: Proper toggle (clicking active = back to auto) */}
       <div className="map-switcher">
-        <button 
+        <button
           className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
           onClick={() => { setMapMode('auto'); setShowRadar(false); }}
         >
           {isDark ? 'DARK' : 'LIGHT'}
         </button>
-        <button 
+        <button
           className={`map-switcher__btn ${mapMode === 'street' ? 'map-switcher__btn--active' : ''}`}
           onClick={() => { setMapMode(mapMode === 'street' ? 'auto' : 'street'); setShowRadar(false); }}
         >
           STREET
         </button>
-        <button 
+        <button
           className={`map-switcher__btn ${showRadar ? 'map-switcher__btn--active' : ''}`}
           onClick={() => setShowRadar(prev => !prev)}
         >
           {showRadar ? 'LIVE: ON' : 'WEATHER'}
         </button>
-        <button 
+        <button
           className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
           onClick={() => setIsReporting(prev => !prev)}
           style={{ background: isReporting ? 'var(--accent-red)' : '' }}
@@ -341,157 +300,57 @@ export default function MapView({ onSearch, onReset, activeFilter, setActiveFilt
 
         {/* Fly to searched location */}
         <FlyTo target={flyTarget} />
-
-        {/* User Search Marker (Person Figure) */}
-        {flyTarget && flyTarget.zoom > 10 && (
+        {flyTarget && Array.isArray(flyTarget.coords) && flyTarget.coords.length === 2 && flyTarget.zoom > 10 && (
           <Marker position={flyTarget.coords} icon={icons.user}>
-            <Popup autoOpen>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', textAlign: 'center' }}>
-                <strong style={{ color: 'var(--accent-cyan)' }}>SEARCHED LOCATION</strong><br />
-                <span>LAT: {flyTarget.coords[0].toFixed(4)} <br/> LON: {flyTarget.coords[1].toFixed(4)}</span>
-              </div>
-            </Popup>
+            <Popup autoOpen><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{t('searchedLoc')}</strong><br />{flyTarget.coords[0]?.toFixed(4)}, {flyTarget.coords[1]?.toFixed(4)}</div></Popup>
           </Marker>
         )}
-
-        {/* EVACUATION SAFETY PATH VISUALIZATION */}
-        {evacuationTarget && flyTarget && (
+        {evacuationTarget && evacuationTarget.lat && evacuationTarget.lon && flyTarget && Array.isArray(flyTarget.coords) && (
           <>
-            <Marker 
-              position={[evacuationTarget.lat, evacuationTarget.lon]} 
-              icon={icons.shelter_pulse}
-            >
-              <Popup autoOpen>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                  <strong style={{ color: 'var(--accent-green)' }}>SAFE ZONE IDENTIFIED</strong><br />
-                  <span>{evacuationTarget.name}</span>
-                </div>
-              </Popup>
+            <Marker position={[evacuationTarget.lat, evacuationTarget.lon]} icon={icons.shelter_pulse}>
+              <Popup autoOpen><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong style={{ color: 'var(--accent-green)' }}>{t('safeZone')}</strong><br />{evacuationTarget.name}</div></Popup>
             </Marker>
-            <Polyline 
-              positions={[flyTarget.coords, [evacuationTarget.lat, evacuationTarget.lon]]}
-              pathOptions={{
-                color: 'var(--accent-green)',
-                weight: 3,
-                dashArray: '10, 10',
-                opacity: 0.8
-              }}
-            >
-              <Popup>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                   Evacuation Path to Safety
-                </div>
-              </Popup>
+            <Polyline positions={[flyTarget.coords, [evacuationTarget.lat, evacuationTarget.lon]]} pathOptions={{ color: 'var(--accent-green)', weight: 3, dashArray: '10, 10' }}>
+              <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>{t('evacPath')}</div></Popup>
             </Polyline>
           </>
         )}
-
-        {/* Disaster markers */}
         {allMarkers
-          .filter(m => (activeFilter === 'all' || m.type === activeFilter) && Array.isArray(m.pos) && m.pos.length === 2)
-          .map((m, i) => {
-            const iconKey = activeFilter === 'all' ? m.type : `${m.type}_pulse`;
-            const markerIcon = icons[iconKey] || icons[m.type] || icons.flood;
-            
-            return (
-              <Marker 
-                key={`${m.id || m.type}-${i}`} 
-                position={m.pos} 
-                icon={markerIcon}
-              >
-              <Popup>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                  <strong>{m.label}</strong><br />
-                  <span style={{ color: m.severity === 'High' ? '#ff4757' : m.severity === 'Medium' ? '#ff9f43' : '#00e676' }}>
-                    Severity: {m.severity}
-                  </span>
-                </div>
-              </Popup>
-              </Marker>
-            );
-          })}
-
-        {/* Connection arcs */}
-        {arcs.map((a, i) => (
-          <Polyline
-            key={i}
-            positions={[a.from, a.to]}
-            pathOptions={{
-              color: '#00d4ff',
-              weight: 1,
-              opacity: 0.35,
-              dashArray: '6 4',
-            }}
-          />
-        ))}
+          .filter(m => (activeFilter === 'all' || m.type === activeFilter))
+          .filter(m => Array.isArray(m.pos) && m.pos.length === 2 && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
+          .map((m, i) => (
+            <Marker key={`${m.id || i}`} position={m.pos} icon={icons[activeFilter === 'all' ? m.type : `${m.type}_pulse`] || icons.flood}>
+              <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{m.label}</strong><br /><span style={{ color: m.severity === 'High' ? '#ff4757' : '#00e676' }}>{language === 'en' ? 'Severity' : 'Tahap'}: {m.severity}</span></div></Popup>
+            </Marker>
+          ))}
       </MapContainer>
 
-      {/* Map Legend */}
       <div className="map-legend">
-        <div className="map-legend__header">Tactical Filters</div>
-        
-        <div 
-          className={`map-legend__item ${activeFilter === 'all' ? 'map-legend__item--active' : ''}`}
-          onClick={() => setActiveFilter('all')}
-        >
-          All Events
-        </div>
-
+        <div className="map-legend__header">{t('tacticalFilters')}</div>
+        <div className={`map-legend__item ${activeFilter === 'all' ? 'map-legend__item--active' : ''}`} onClick={() => setActiveFilter('all')}>{t('allEvents')}</div>
         {Object.keys(COLORS).map(type => (
-          <div 
-            key={type}
-            className={`map-legend__item ${activeFilter === type ? 'map-legend__item--active' : ''}`}
-            onClick={() => setActiveFilter(type)}
-          >
-            <span 
-              className="map-legend__dot" 
-              style={{ color: COLORS[type].hex, background: COLORS[type].hex }} 
-            />
-            {type}
+          <div key={type} className={`map-legend__item ${activeFilter === type ? 'map-legend__item--active' : ''}`} onClick={() => setActiveFilter(type)}>
+            <span className="map-legend__dot" style={{ color: COLORS[type].hex, background: COLORS[type].hex }} />
+            {language === 'en' ? type.charAt(0).toUpperCase() + type.slice(1) : t(type) || type}
           </div>
         ))}
       </div>
 
-      {/* REPORT FORM OVERLAY */}
       {isReporting && (
         <div className="report-overlay glass">
-          <div className="report-overlay__header">Tactical Field Report</div>
-          
-          <div className="report-overlay__step">
-            {reportCoords ? (
-              <span style={{ color: 'var(--accent-green)' }}>✓ Location Locked</span>
-            ) : (
-              <span className="pulse-text">Click on the map to mark incident</span>
-            )}
-          </div>
-
+          <div className="report-overlay__header">{language === 'en' ? 'Tactical Field Report' : 'Laporan Taktikal Lapangan'}</div>
+          <div className="report-overlay__step">{reportCoords ? <span style={{ color: 'var(--accent-green)' }}>✓ Location Locked</span> : <span className="pulse-text">{language === 'en' ? 'Click map to mark incident' : 'Klik peta untuk tanda insiden'}</span>}</div>
           {reportCoords && (
             <div className="fade-in">
-              <select 
-                className="report-overlay__select"
-                value={reportType}
-                onChange={e => setReportType(e.target.value)}
-              >
-                <option value="flood">Flood</option>
-                <option value="wildfire">Wildfire</option>
-                <option value="monsoon">Storm/Monsoon</option>
-                <option value="medical">Medical Emergency</option>
-                <option value="access">Road Blocked</option>
+              <select className="report-overlay__select" value={reportType} onChange={e => setReportType(e.target.value)}>
+                <option value="flood">{language === 'en' ? 'Flood' : 'Banjir'}</option>
+                <option value="wildfire">{language === 'en' ? 'Wildfire' : 'Kebakaran'}</option>
+                <option value="monsoon">{language === 'en' ? 'Storm/Monsoon' : 'Ribut/Monsun'}</option>
+                <option value="medical">{language === 'en' ? 'Medical Emergency' : 'Kecemasan Perubatan'}</option>
+                <option value="access">{language === 'en' ? 'Road Blocked' : 'Jalan Terhalang'}</option>
               </select>
-              
-              <textarea 
-                className="report-overlay__input"
-                placeholder="Brief description (optional)..."
-                value={reportText}
-                onChange={e => setReportText(e.target.value)}
-              />
-              
-              <button 
-                className="report-overlay__btn"
-                onClick={handleReportSubmit}
-              >
-                SUBMIT INTELLIGENCE
-              </button>
+              <textarea className="report-overlay__input" placeholder={language === 'en' ? 'Description...' : 'Keterangan...'} value={reportText} onChange={e => setReportText(e.target.value)} />
+              <button className="report-overlay__btn" onClick={handleReportSubmit}>{language === 'en' ? 'SUBMIT INTELLIGENCE' : 'HANTAR PERISIKAN'}</button>
             </div>
           )}
         </div>
