@@ -9,6 +9,7 @@ venv.bak/
 
 # Credentials (CRITICAL: Do not push API keys to GitHub!)
 firebase-service-account.json
+backend/*.json
 
 # Python
 __pycache__/
