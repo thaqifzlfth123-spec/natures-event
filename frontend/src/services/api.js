@@ -150,3 +150,18 @@ export async function fetchExternalHazards() {
     return [];
   }
 }
+
+/**
+ * Fetches AI-generated Strategic Situation Report (SITREP)
+ * @param {string} lang - 'en' or 'bm'
+ */
+export async function getStrategicAdvisory(lang = 'en') {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/advisory?lang=${lang}`);
+    if (!res.ok) throw new Error("Strategic Advisory API returned error");
+    return await res.json();
+  } catch (error) {
+    console.error("Advisory Error:", error);
+    return { advisory: lang === 'en' ? "Strategic advisory triage failed." : "Gagal triaj penasihat strategik." };
+  }
+}

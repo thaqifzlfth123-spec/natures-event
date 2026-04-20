@@ -1,18 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Header from './components/Header';
 import RiskGauges from './components/RiskGauges';
-import MapView from './components/MapView';
 import NewsFeed from './components/NewsFeed';
 import LocationData from './components/LocationData';
 import ChatBot from './components/ChatBot';
 import AlertSummary from './components/AlertSummary';
 import AuthModal from './components/AuthModal';
+import StrategicAdvisory from './components/StrategicAdvisory';
 import { db } from './services/firebaseConfig';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useLanguage } from './context/LanguageContext';
+
+const MapView = lazy(() => import('./components/MapView'));
 
 // Vercel Force Redeploy: 2026-04-18T20:00 (Dashboard Layout Refactor)
 export default function App() {
+  // eslint-disable-next-line no-unused-vars
+  const { t } = useLanguage();
   const [showAuth, setShowAuth] = useState(false);
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(true);
@@ -22,12 +27,13 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
   const dashRef = useRef(null);
 
-  // SHARED STATE FOR UNIFIED SEARCH
   const [sharedLocation, setSharedLocation] = useState('');
   const [sharedRiskData, setSharedRiskData] = useState(null);
   const [loadingRisk, setLoadingRisk] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [userCoords, setUserCoords] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [evacuationTarget, setEvacuationTarget] = useState(null);
 
   // NEW FEATURE STATES
   const [activeRegion, setActiveRegion] = useState('REGIONS');
@@ -47,14 +53,12 @@ export default function App() {
   const dashBodyRef = useRef(null);
   const resizingRef = useRef(null);
 
-  // Track viewport width for mobile detection
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1024);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
@@ -67,8 +71,7 @@ export default function App() {
     const preventScroll = () => { el.scrollTop = 0; el.scrollLeft = 0; };
     preventScroll();
     el.addEventListener('scroll', preventScroll);
-    const timer = setTimeout(preventScroll, 500);
-    return () => { el.removeEventListener('scroll', preventScroll); clearTimeout(timer); };
+    return () => el.removeEventListener('scroll', preventScroll);
   }, [isMobile]);
 
   // ── RESIZE DRAG HANDLERS ──
@@ -113,8 +116,8 @@ export default function App() {
     e.preventDefault();
     const startValue =
       type === 'left' ? leftWidth :
-      type === 'right' ? rightWidth :
-      type === 'bottomLeft' ? bottomLeftWidth : topRatio;
+        type === 'right' ? rightWidth :
+          type === 'bottomLeft' ? bottomLeftWidth : topRatio;
     resizingRef.current = { type, startX: e.clientX, startY: e.clientY, startValue };
     document.body.style.cursor = type === 'vertical' ? 'row-resize' : 'col-resize';
     document.body.style.userSelect = 'none';
@@ -130,15 +133,12 @@ export default function App() {
     if (!loc) return;
     setSharedLocation(loc);
     setLoadingRisk(true);
+    setEvacuationTarget(null);
     try {
       const { checkHazardRisk } = await import('./services/api');
       const data = await checkHazardRisk(loc, lat, lon);
       setSharedRiskData(data);
-    } catch (err) {
-      console.error('Unified search failed:', err);
-    } finally {
-      setLoadingRisk(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoadingRisk(false); }
   };
 
   const handleReset = useCallback(() => {
@@ -159,7 +159,7 @@ export default function App() {
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
       setUserCoords({ lat, lon });
-      
+
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
         const data = await res.json();
@@ -185,7 +185,7 @@ export default function App() {
       lon: userCoords ? userCoords.lon : null,
       timestamp: new Date().toISOString()
     };
-    
+
     // Prevent exactly identical string duplicates
     if (savedLocations.find(loc => loc.name === sharedLocation)) return;
 
@@ -219,18 +219,13 @@ export default function App() {
     }
   };
 
-  // REAL-TIME FIRESTORE LISTENER
+
   const [liveReports, setLiveReports] = useState([]);
   useEffect(() => {
     const q = query(collection(db, "reports"), orderBy("timestamp", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setLiveReports(reports);
-    }, (error) => {
-      console.error("Firestore Listen Error:", error);
+    return onSnapshot(q, (snapshot) => {
+      setLiveReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-
-    return () => unsubscribe();
   }, []);
 
   return (
@@ -268,6 +263,7 @@ export default function App() {
       />
 
       {/* ── DASHBOARD BODY (Vertically Resizable Top/Bottom Groups) ── */}
+      <StrategicAdvisory />
       <div className="dashboard-body" ref={dashBodyRef}>
 
         {/* ── TOP GROUP: Community Incidents | Map | ChatBot ── */}

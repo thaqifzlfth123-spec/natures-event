@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function Header({ 
-  onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark, isMobile, 
+export default function Header({
+  onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark,
   onSearch, onReset, activeRegion, setActiveRegion, onGetLocation, onSaveLocation,
-  notificationsEnabled, onToggleNotifications, user, savedLocations 
+  notificationsEnabled, onToggleNotifications, savedLocations
 }) {
   const [time, setTime] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
+  const { language, toggleLanguage, t } = useLanguage();
   const [locDropdownOpen, setLocDropdownOpen] = useState(false);
 
   // FIX #3: Hover-reveal search bar state
@@ -19,15 +21,15 @@ export default function Header({
     return () => clearInterval(timer);
   }, []);
 
-  const formattedTime = time.toLocaleString('en-MY', {
+  const formattedTime = time.toLocaleString(language === 'en' ? 'en-MY' : 'ms-MY', {
     year: 'numeric', month: 'short', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false
   });
 
   const regionsList = [
-    'Johor', 'Kedah', 'Kelantan', 'Malacca', 'Negeri Sembilan', 'Pahang', 
-    'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor', 
+    'Johor', 'Kedah', 'Kelantan', 'Malacca', 'Negeri Sembilan', 'Pahang',
+    'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor',
     'Terengganu', 'Kuala Lumpur', 'Labuan', 'Putrajaya'
   ];
 
@@ -52,8 +54,8 @@ export default function Header({
       {/* Logo */}
       <div className="header__logo">
         <div className="header__logo-icon" />
-        <span style={{ letterSpacing: '4px', background: 'linear-gradient(90deg, #fff, #8899aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          DISASTER MONITOR
+        <span style={{ letterSpacing: '4px', background: 'linear-gradient(90deg, #fff, #8899aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>
+          {t('logo')}
         </span>
       </div>
 
@@ -65,10 +67,10 @@ export default function Header({
         >
           LOCATIONS ▼
         </button>
-        
+
         {locDropdownOpen && (
           <div className="header__dropdown glass" style={{ position: 'absolute', top: '100%', left: 0, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', width: '200px', zIndex: 100 }}>
-            
+
             {/* Regions Submenu */}
             <div style={{ paddingBottom: '5px', borderBottom: '1px solid var(--border-color)' }}>
               <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>REGIONS</span>
@@ -108,14 +110,15 @@ export default function Header({
         )}
       </nav>
 
+
       {/* FIX #3: Hover-reveal Search Bar (Desktop) */}
-      <div 
+      <div
         className={`header__search ${searchExpanded ? 'header__search--expanded' : ''}`}
         onMouseEnter={() => setSearchExpanded(true)}
         onMouseLeave={() => { if (!searchVal) setSearchExpanded(false); }}
       >
-        <button 
-          className="header__search-icon" 
+        <button
+          className="header__search-icon"
           onClick={() => setSearchExpanded(prev => !prev)}
           title="Search location"
         >
@@ -143,12 +146,22 @@ export default function Header({
         )}
       </div>
 
-      {/* Right Section: Timestamp, Status, Login, Theme (Desktop) */}
+      {/* Right Section: Timestamp, Status, Login, Theme, Lang (Desktop) */}
       <div className="header__right">
-        <span className="header__timestamp telemetry">LAST SYNC: {formattedTime}</span>
-        <span className="header__status header__status--high">HIGH ALERT</span>
+        <span className="header__timestamp telemetry">{t('lastSync')}: {formattedTime}</span>
+        <span className="header__status header__status--high">{t('highAlert')}</span>
+
+        {/* Language Toggle */}
+        <button
+          className="header__login-btn"
+          onClick={toggleLanguage}
+          style={{ borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)', minWidth: '60px' }}
+        >
+          {language === 'en' ? 'EN' : 'BM'}
+        </button>
+
         <button className="header__login-btn" onClick={onLoginClick}>
-          LOGIN / REGISTER
+          {t('loginRegister')}
         </button>
         <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
           {notificationsEnabled ? '🔕' : '🔔'}
@@ -205,20 +218,23 @@ export default function Header({
           <button className={`header__nav-btn ${activeRegion === 'MY LOCATIONS' ? 'header__nav-btn--active' : ''}`} onClick={() => { setActiveRegion('MY LOCATIONS'); setMenuOpen(false); }}>
             ⭐ MY LOCATIONS (5KM FILTER)
           </button>
+          <div className="header__right">
+            <button className="header__nav-btn" style={{ width: '100%' }} onClick={toggleLanguage}>
+              LANGUAGE: {language === 'en' ? 'ENGLISH' : 'BAHASA MELAYU'}
+            </button>
+            <span className="header__timestamp">{t('lastSync')}: {formattedTime}</span>
+            <span className="header__status header__status--high">{t('highAlert')}</span>
+            <button className="header__login-btn" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
+              {t('loginRegister')}
+            </button>
+            <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
+              {notificationsEnabled ? 'Notifications: ON' : 'Notifications: OFF'}
+            </button>
+            <button className="header__theme-btn" onClick={onThemeToggle} title="Toggle theme">
+              {isDark ? 'Theme: Dark' : 'Theme: Light'}
+            </button>
+          </div>
         </nav>
-        <div className="header__right">
-          <span className="header__timestamp">LAST SYNC: {formattedTime}</span>
-          <span className="header__status header__status--high">HIGH ALERT</span>
-          <button className="header__login-btn" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
-            LOGIN / REGISTER
-          </button>
-          <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
-            {notificationsEnabled ? 'Notifications: ON' : 'Notifications: OFF'}
-          </button>
-          <button className="header__theme-btn" onClick={onThemeToggle} title="Toggle theme">
-            {isDark ? 'Theme: Dark' : 'Theme: Light'}
-          </button>
-        </div>
       </div>
     </header>
   );

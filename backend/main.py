@@ -1,7 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends # type: ignore
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel # pyright: ignore[reportMissingImports]
-from ai_service import check_hazard_risk, get_chatbot_stream, analyze_hazard_image, get_evacuation_plan
+from ai_service import (
+    check_hazard_risk, 
+    get_chatbot_stream, 
+    analyze_hazard_image, 
+    get_evacuation_plan,
+    get_strategic_advisory_text
+)
 from fastapi.responses import StreamingResponse
 from weather_service import get_real_weather
 from database import get_db, auth as firebase_auth
@@ -29,18 +35,13 @@ RISK_CACHE: Dict[str, Any] = {}
 CACHE_EXPIRATION_MINUTES = 10
 
 async def background_refresh_cache():
-    """
-    Cron Job: Runs every 10 minutes in the background.
-    Refreshes the weather/AI risk for all previously searched locations to keep the cache fully updated.
-    """
     while True:
-        await asyncio.sleep(600)  # Wait 10 minutes
+        await asyncio.sleep(600)
         logger.info("[CRON] Refreshing Weather Data Cache...")
         for location in list(RISK_CACHE.keys()):
             try:
                 live_weather_data = await get_real_weather(location)
                 primary_hazard, risk_level, explanation = await check_hazard_risk(location, live_weather_data)
-                
                 RISK_CACHE[location] = {
                     "primary_hazard": primary_hazard,
                     "risk_level": risk_level,
@@ -48,17 +49,13 @@ async def background_refresh_cache():
                     "weather_data_used": live_weather_data,
                     "timestamp": datetime.now(timezone.utc)
                 }
-                logger.info(f"[CRON] Successfully refreshed {location}")
             except Exception as e:
                 logger.error(f"[CRON] Failed to refresh {location}: {e}")
 
 @app.on_event("startup")
 async def startup_event():
-    # Start the background cron job when the server boots up
     asyncio.create_task(background_refresh_cache())
-# -----------------------------------
 
-# Allow CORS for frontend integration (React/Flutter)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -71,7 +68,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Models for Request validation
 class LocationRequest(BaseModel):
     location: str
     lat: Optional[float] = None
@@ -91,13 +87,9 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-# Security scheme for expecting Bearer tokens from the Frontend
 security = HTTPBearer()
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Validates the Firebase ID Token sent by the frontend's login.
-    """
     try:
         decoded_token = fa_auth.verify_id_token(credentials.credentials)
         return decoded_token
@@ -108,21 +100,12 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 async def root():
     return {"message": "Welcome to the Flood Alert System API. Services are running!"}
 
-@app.post("/api/risk", summary="1. Hazard Risk Checker") #/api/risk
+@app.post("/api/risk")
 async def get_risk(request: LocationRequest):
-    """
-    User enters location. System checks the Cache first. If missing/old, fetches live weather 
-    and returns the Primary Hazard, Risk Level, and AI explanation.
-    """
     loc_key = request.location.lower().strip()
-    
-    # 1. CHECK CACHE FIRST (The Data Refresh System)
     if loc_key in RISK_CACHE:
         cached_data = RISK_CACHE[loc_key]
-        time_diff = datetime.now(timezone.utc) - cached_data["timestamp"]
-        
-        if time_diff < timedelta(minutes=CACHE_EXPIRATION_MINUTES):
-            logger.info(f"[CACHE HIT] Instantly returning saved data for {loc_key}")
+        if datetime.now(timezone.utc) - cached_data["timestamp"] < timedelta(minutes=CACHE_EXPIRATION_MINUTES):
             return {
                 "location": request.location, 
                 "primary_hazard": cached_data["primary_hazard"],
@@ -131,14 +114,10 @@ async def get_risk(request: LocationRequest):
                 "weather_data_used": cached_data["weather_data_used"],
                 "cached": True
             }
-            
-    logger.info(f"[CACHE MISS] Fetching fresh API data for {loc_key}...")
     
-    # 2. FETCH REAL DATA IF NO CACHE
     live_weather_data = await get_real_weather(request.location, lat=request.lat, lon=request.lon)
     primary_hazard, risk_level, explanation = await check_hazard_risk(request.location, live_weather_data)
     
-    # 3. SAVE TO CACHE FOR NEXT 10 MINUTES
     RISK_CACHE[loc_key] = {
         "primary_hazard": primary_hazard,
         "risk_level": risk_level,
@@ -156,7 +135,7 @@ async def get_risk(request: LocationRequest):
         "cached": False
     }
 
-@app.post("/api/chat", summary="4. Emergency Chatbot") #/api/chat
+@app.post("/api/chat")
 async def chat(request: ChatRequest):
     """
     Ask emergency chatbot questions like "What should I do during flood?" (Streamed)
@@ -169,165 +148,69 @@ async def get_external_hazards():
     events = await get_all_external_hazards()
     return events
 
-@app.post("/api/report", summary=" Report Hazard Incident") #/api/report
+@app.post("/api/report")
 async def report_hazard(
     location: str = Form(...), 
     latitude: float = Form(...),
     longitude: float = Form(...),
     image: UploadFile = File(...)
 ):
-    """
-    User uploads an image of an emergency event. AI analyzes hazard type and its severity.
-    If severity is High, triggers Push Notification alerts to nearby users!
-    """
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File provided is not an image.")
-        
     image_bytes = await image.read()
     hazard, severity, analysis, confidence = await analyze_hazard_image(image_bytes, location, image.content_type)
     
-    # --- INTELLIGENCE LAYER (CONFIDENCE FAIL-SAFE) ---
     parsed_conf = 100
     try:
         conf_str = confidence.replace("%", "").strip()
         if conf_str.isdigit():
             parsed_conf = int(conf_str)
-    except Exception as e:
-        logger.warning(f"Failed to parse confidence value '{confidence}': {e}")
+    except Exception: pass
         
     if parsed_conf < 70 and "high" in severity.lower():
         severity = "Medium"
-        analysis += "\n\n⚠️ **System Note:** Severity automatically downgraded from High to Medium due to low AI confidence (<70%)."
-        logger.warning(f"Downgraded severity to Medium for {location}. Confidence was {parsed_conf}%.")
-
-    # --- AUTONOMOUS AGENTIC WORKFLOW ---
-    smart_alert_body = f"A High-severity {hazard} was just reported nearby in {location}."
-    
+        analysis += "\n\n\u26a0\ufe0f **System Note:** Severity downgraded due to low confidence."
+        
     if hazard.lower() != "none" and "high" in severity.lower():
-        # Call the Agent to find the nearest safe zone and draft an evacuation response
         evac_data = await get_evacuation_plan(latitude, longitude, hazard)
-        instruction = evac_data.get("instruction", f"Please evacuate to {evac_data.get('safe_zone_name')}")
-        smart_alert_body = f"EMERGENCY: {instruction}"
-        
-        # Append to the AI Analysis so the frontend displays it automatically
-        analysis += f"\n\n🚨 **Actionable Evacuation Plan:** {instruction}"
-        
-        # Add evacuation coordinates for the frontend Map to draw the path
-        evacuation_target = {
-            "name": evac_data.get("safe_zone_name"),
-            "lat": evac_data.get("lat"),
-            "lon": evac_data.get("lon")
-        }
+        instruction = evac_data.get("instruction", "Please evacuate.")
+        analysis += f"\n\n\ud83d\udea8 **Actionable Evacuation Plan:** {instruction}"
+        evacuation_target = {"name": evac_data.get("safe_zone_name"), "lat": evac_data.get("lat"), "lon": evac_data.get("lon")}
     else:
         evacuation_target = None
     
-    # Save the report to Firebase Firestore
     db = get_db()
     if db:
         try:
             db.collection("reports").add({
-                "location": location, 
-                "latitude": latitude,
-                "longitude": longitude,
-                "hazard": hazard,
-                "severity": severity, 
-                "confidence": confidence,
-                "analysis": analysis,
-                "status": "pending_review",
+                "location": location, "latitude": latitude, "longitude": longitude,
+                "hazard": hazard, "severity": severity, "analysis": analysis,
                 "timestamp": datetime.now(timezone.utc)
             })
-            
-            # TRIGGER REAL-TIME FCM PUSH NOTIFICATIONS IF SEVERITY IS HIGH
-            if hazard.lower() != "none" and "high" in severity.lower():
-                users_ref = db.collection("users").stream()
-                for user_doc in users_ref:
-                    user_data = user_doc.to_dict()
-                    user_lat = user_data.get("home_latitude")
-                    user_lon = user_data.get("home_longitude")
-                    fcm_token = user_data.get("fcm_token")
-                    
-                    if user_lat and user_lon and fcm_token:
-                        dist = calculate_distance(latitude, longitude, user_lat, user_lon)
-                        if dist <= 10.0:  # 10km proximity rule
-                            # Send Smart Push Notification
-                            message = messaging.Message(
-                                notification=messaging.Notification(
-                                    title=f"EMERGENCY ALERT: {hazard}",
-                                    body=smart_alert_body
-                                ),
-                                token=fcm_token,
-                            )
-                            try:
-                                messaging.send(message)
-                                logger.info(f"Sent 10km Push Notification to user {user_doc.id}")
-                            except Exception as e:
-                                logger.error(f"Error sending FCM to {user_doc.id}: {e}")
-
-        except Exception as e:
-            logger.error(f"Error saving to Firestore: {e}")
+        except Exception as e: logger.error(f"Firestore Error: {e}")
 
     return {
-        "location": location, 
-        "hazard": hazard,
-        "severity": severity,
-        "confidence": confidence,
-        "analysis": analysis,
-        "evacuation_target": evacuation_target
+        "location": location, "hazard": hazard, "severity": severity,
+        "confidence": confidence, "analysis": analysis, "evacuation_target": evacuation_target
     }
 
-@app.post("/api/auth/register", summary="Register a New User")
+@app.post("/api/auth/register")
 async def register(request: RegisterRequest):
-    """
-    Register a user using Firebase Authentication.
-    Saves their email and password to Identity Toolkit.
-    """
     try:
-        user = firebase_auth.create_user(
-            email=request.email,
-            password=request.password
-        )
-        # Optionally, save user profile in Firestore
+        user = firebase_auth.create_user(email=request.email, password=request.password)
         db = get_db()
         if db:
             db.collection("users").document(user.uid).set({
-                "email": request.email,
-                "role": "user",
-                "fcm_token": request.fcm_token,
-                "home_latitude": request.home_latitude,
-                "home_longitude": request.home_longitude
+                "email": request.email, "fcm_token": request.fcm_token,
+                "home_latitude": request.home_latitude, "home_longitude": request.home_longitude
             })
         return {"message": "User registered successfully", "uid": user.uid}
-    except fa_auth.EmailAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Email already exists.")
-    except FirebaseError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/auth/login", summary="Login Placeholder")
-async def login(request: LoginRequest):
-    """
-    Note: Firebase 'Login' (verifying email/pwd and getting an ID Token) 
-    is natively meant to be done on the Client-side (Streamlit/React) using the Firebase SDK.
-    The backend usually just receives the ID Token and verifies it using `firebase_admin.auth.verify_id_token()`.
-    
-    Alternatively, through the backend, you can use the Identity Toolkit REST API
-    using an API key. For now, this is a placeholder.
-    """
-    return {"message": "In Firebase, Login is handled by the frontend which sends the Token here. See comments for details."}
-
-
-@app.get("/api/auth/me", summary="Check Verified User (Protected Route)")
+@app.get("/api/auth/me")
 async def get_me(token: dict = Depends(verify_token)):
-    """
-    This endpoint is protected! It requires a valid Firebase Bearer token.
-    You can use this to get the user's ID securely.
-    """
-    return {
-        "message": "You are securely authenticated!", 
-        "uid": token.get("uid"), 
-        "email": token.get("email")
-    }
+    return {"uid": token.get("uid"), "email": token.get("email")}
 
 def is_relevant_disaster_news(text: str) -> bool:
     """
@@ -345,6 +228,7 @@ def is_relevant_disaster_news(text: str) -> bool:
 async def get_news_feed():
     import httpx
     from hashlib import md5
+    import xml.etree.ElementTree as ET
     
     met_malaysia_url = "https://api.data.gov.my/weather/warning"
     bernama_url = "https://bernama.com/en/rssfeed.php"
@@ -359,12 +243,10 @@ async def get_news_feed():
             res_met = await client.get(met_malaysia_url, timeout=5.0)
             if res_met.status_code == 200:
                 data = res_met.json()
-                # Expecting a list or single object based on documentation
                 warnings = data if isinstance(data, list) else [data]
                 for w in warnings:
                     title = w.get("warning_issue", {}).get("title_en", "Weather Warning")
                     text = w.get("heading_en", "Active Warning")
-                    # Using issued date as part of ID to avoid duplicates
                     issued = w.get("warning_issue", {}).get("issued", "")
                     item_id = md5(f"met_{issued}_{title}".encode()).hexdigest()
                     
@@ -382,7 +264,6 @@ async def get_news_feed():
 
         # 2. FETCH BERNAMA (MALAYSIAN LOCAL)
         try:
-            import xml.etree.ElementTree as ET
             res_my = await client.get(bernama_url, headers=headers, timeout=5.0)
             if res_my.status_code == 200:
                 root = ET.fromstring(res_my.content)
@@ -405,62 +286,51 @@ async def get_news_feed():
         except Exception as e:
             logger.error(f"Bernama Fetch failed: {e}")
 
-    # 3. ARCHIVE TO FIRESTORE (DE-DUPLICATED)
     if db:
         try:
             batch = db.batch()
             for item in live_items:
-                doc_ref = db.collection("news_archive").document(item["id"])
-                # Only save if URL is valid
                 if item["url"] != "#":
-                    # We use set with merge=True to update timestamp but keep old ones if needed
-                    batch.set(doc_ref, {
-                        "text": item["text"],
-                        "url": item["url"],
-                        "tag": item["tag"],
-                        "tagColor": item["tagColor"],
-                        "timestamp": item["timestamp"],
-                        "source": "RSS_AUTO"
+                    batch.set(db.collection("news_archive").document(item["id"]), {
+                        "text": item["text"], "url": item["url"], "tag": item["tag"], "tagColor": item["tagColor"],
+                        "timestamp": item["timestamp"], "source": "RSS_AUTO"
                     }, merge=True)
             batch.commit()
-        except Exception as e:
-            logger.error(f"Firestore Archive Failed: {e}")
+        except Exception: pass
 
-    # 4. RETRIEVE BEST DATA (ARCHIVE-FIRST)
     try:
         if db:
-            # Query the archive for the top 12 most recent items across history
-            archive_ref = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(12).stream()
-            archived_items = []
-            for doc in archive_ref:
+            docs = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(12).stream()
+            archived = []
+            for doc in docs:
                 d = doc.to_dict()
-                # Format time string for UI (e.g. 2 DAYS AGO if old)
                 ts = d.get("timestamp")
-                time_str = "LIVE DATA"
-                if ts:
-                    diff = datetime.now(timezone.utc) - ts
-                    if diff > timedelta(hours=24):
-                        time_str = f"{diff.days} DAYS AGO"
-                    elif diff > timedelta(hours=1):
-                        time_str = f"{int(diff.seconds // 3600)}H AGO"
-                    else:
-                        time_str = "RECENT"
-                
-                archived_items.append({
-                    "time": time_str,
-                    "text": d.get("text"),
-                    "url": d.get("url"),
-                    "tag": d.get("tag"),
-                    "tagColor": d.get("tagColor")
-                })
-            
-            if archived_items:
-                return archived_items
-    except Exception as e:
-        logger.error(f"Archive Retrieval Failed: {e}")
-
-    # Fallback to live items if DB fails
+                diff = datetime.now(timezone.utc) - ts if ts else None
+                time_str = f"{diff.days}D AGO" if diff and diff.days > 0 else "RECENT"
+                archived.append({"time": time_str, "text": d.get("text"), "url": d.get("url"), "tag": d.get("tag"), "tagColor": d.get("tagColor")})
+            return archived if archived else live_items
+    except Exception: pass
+    
     return live_items if live_items else [{"time": "OFFLINE", "text": "Disaster feeds temporarily unavailable.", "url": "#", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
+
+@app.get("/api/advisory")
+async def get_strategic_advisory(lang: str = "en"):
+    db = get_db()
+    if not db:
+        return {"advisory": "Strategic advisory offline." if lang == "en" else "Penasihat strategik luar talian."}
+
+    try:
+        docs = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(10).stream()
+        news_items = [{"text": d.to_dict().get("text"), "tag": d.to_dict().get("tag")} for d in docs]
+        
+        if not news_items:
+            return {"advisory": "No active intelligence reports found." if lang == "en" else "Tiada laporan perisikan ditemui."}
+
+        advisory_text = await get_strategic_advisory_text(news_items, lang)
+        return {"advisory": advisory_text}
+    except Exception as e:
+        logger.error(f"Advisory Generation Failed: {e}")
+        return {"advisory": "Strategic advisory triage failed." if lang == "en" else "Gagal triaj strategik."}
 
 if __name__ == "__main__":
     import uvicorn
@@ -468,3 +338,4 @@ if __name__ == "__main__":
     # Cloud Run dynamically assigns a port via the PORT environment variable.
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
+

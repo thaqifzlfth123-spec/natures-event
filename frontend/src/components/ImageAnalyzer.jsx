@@ -41,7 +41,8 @@ export default function ImageAnalyzer({ onAnalysisComplete }) {
       if (typeof onAnalysisComplete === 'function') {
         onAnalysisComplete(data);
       }
-    } catch (err) {
+    // eslint-disable-next-line no-unused-vars
+    } catch (_err) {
       setAnalysis({ hazard: 'Error', severity: 'N/A', analysis: 'Failed to analyze image. Is the backend running?' });
     }
     setLoading(false);

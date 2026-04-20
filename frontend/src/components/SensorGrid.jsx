@@ -33,7 +33,7 @@ export default function SensorGrid() {
         <span className="panel-header__badge panel-header__badge--live">LIVE</span>
       </div>
       <div className="panel-body">
-        {sensors.map((s, i) => (
+        {sensors.map((s) => (
           <div className="sensor-item" key={s.id}>
             <div className="sensor-item__label">
               <span className="sensor-item__dot" style={{ 

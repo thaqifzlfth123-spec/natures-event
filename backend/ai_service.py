@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # --- Initialize Gemini Vertex AI Client (New google-genai SDK) ---
 gcp_project = os.getenv("GCP_PROJECT_ID")
-gcp_location = os.getenv("GCP_LOCATION", "us-central1")
+gcp_location = os.getenv("GCP_LOCATION", "asia-southeast1")
 gemini_client_vertex = None
 
 # 🚀 1. Attempt Vertex AI (Uses GCP Credits)
@@ -31,7 +31,7 @@ if gcp_project:
     except Exception as e:
         logger.error(f"⚠️ Vertex AI not ready yet: {e}")
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-1.5-flash-001"
 
 # Helper to get the Vertex Gemini client
 def get_gemini_client():
@@ -274,3 +274,41 @@ def _parse_image_response(text: str):
             analysis = line.replace("Analysis:", "").strip()
 
     return hazard, severity, analysis, confidence
+# ============================================================
+# 4. STRATEGIC SITREP — Powered by Gemini 1.5 Flash
+# ============================================================
+async def get_strategic_advisory_text(news_items: list, lang: str = "en") -> str:
+    """
+    Synthesizes multiple news items into a single mission SITREP.
+    """
+    client, is_vertex = get_gemini_client()
+    if not client:
+        return "Intelligence stream offline. Manual monitoring required." if lang == "en" else "Aliran perisikan luar talian. Pemantauan manual diperlukan."
+
+    news_context = "\n".join([f"- {item['tag']}: {item['text']}" for item in news_items])
+    
+    prompt = f"""
+    You are the Senior Intelligence Officer for Guardian Elite National Disaster Platform.
+    Synthesize the following recent situation reports into a single, high-density tactical SITREP (Situation Report).
+    
+    NEWS FEED:
+    {news_context}
+    
+    RESPONSE REQUIREMENTS:
+    1. Language: {lang}
+    2. Format: Single paragraph, max 250 characters.
+    3. Tone: Professional, mission-critical, authoritative.
+    4. Content: Highlight active threats and immediate responder priority.
+    
+    Output exactly the SITREP text, no preamble.
+    """
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-1.5-flash-001",
+            contents=prompt
+        )
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"SITREP Generation failed: {e}")
+        return "Strategic advisory triage failed." if lang == "en" else "Gagal triaj penasihat strategik."

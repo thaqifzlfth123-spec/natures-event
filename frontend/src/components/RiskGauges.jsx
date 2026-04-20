@@ -1,18 +1,22 @@
+import { useLanguage } from '../context/LanguageContext';
+
 export default function RiskGauges() {
+  const { t } = useLanguage();
+
   const gauges = [
-    { name: 'Historical Flood Risk',   value: 78, level: 'High',   color: 'var(--accent-red)' },
-    { name: 'Monsoon Severity Index',   value: 62, level: '62/100', color: 'var(--accent-orange)' },
-    { name: 'Sea Level Rise (CM)',      value: 45, level: '3.37',   color: 'var(--accent-gold)' },
-    { name: 'Local Deforestation Rate', value: 22, level: '6.15%',  color: 'var(--accent-green)' },
-    { name: 'Earthquake Probability',   value: 15, level: 'Low',    color: 'var(--accent-cyan)' },
-    { name: 'Landslide Risk Index',     value: 55, level: 'Med',    color: 'var(--accent-orange)' },
+    { name: t('histFloodRisk'),   value: 78, level: t('levelHigh'),   color: 'var(--accent-red)' },
+    { name: t('monsoonSeverity'),   value: 62, level: '62/100', color: 'var(--accent-orange)' },
+    { name: t('seaLevel'),      value: 45, level: '3.37',   color: 'var(--accent-gold)' },
+    { name: t('deforestation'), value: 22, level: '6.15%',  color: 'var(--accent-green)' },
+    { name: t('earthquakeProb'),   value: 15, level: t('levelLow'),    color: 'var(--accent-cyan)' },
+    { name: t('landslideRisk'),     value: 55, level: t('levelMed'),    color: 'var(--accent-orange)' },
   ];
 
   return (
     <div className="panel" style={{ flex: 0 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Risk Gauges</span>
-        <span className="panel-header__badge panel-header__badge--alert">STRESS</span>
+        <span className="panel-header__title">{t('riskGauges')}</span>
+        <span className="panel-header__badge panel-header__badge--alert">{t('stress')}</span>
       </div>
       <div className="panel-body">
         {gauges.map((g, i) => (

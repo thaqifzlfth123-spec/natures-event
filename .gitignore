@@ -11,6 +11,8 @@ venv.bak/
 firebase-service-account.json
 backend/*.json
 
+flood-risk-f3fae-f1e657183174.json
+
 # Python
 __pycache__/
 *.py[cod]
