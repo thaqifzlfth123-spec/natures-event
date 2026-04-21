@@ -2,7 +2,7 @@
 // API SERVICE — Centralized connection to the FastAPI Backend
 // =============================================================================
 // Automatically connect to the Live Backend if deployed on Vercel, otherwise Localhost.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 // -----------------------------------------------------------------------------
 // 1. HAZARD RISK CHECK — POST /api/risk

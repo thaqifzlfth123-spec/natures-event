@@ -1993,6 +1993,121 @@ body {
   }
 }
 
+/* ---------- Tactical Toast Notifications ---------- */
+.tactical-toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.tactical-toast {
+  pointer-events: auto;
+  position: relative;
+  width: 320px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  animation: toast-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid var(--accent-cyan);
+}
+
+.tactical-toast--success { border-left-color: var(--accent-green); }
+.tactical-toast--warning { border-left-color: var(--accent-yellow); }
+.tactical-toast--error { border-left-color: var(--accent-red); }
+
+.tactical-toast__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.tactical-toast--success .tactical-toast__icon { color: var(--accent-green); }
+.tactical-toast--warning .tactical-toast__icon { color: var(--accent-yellow); }
+.tactical-toast--error .tactical-toast__icon { color: var(--accent-red); }
+.tactical-toast--info .tactical-toast__icon { color: var(--accent-cyan); }
+
+.tactical-toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tactical-toast__header {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.tactical-toast__message {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.tactical-toast__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.tactical-toast__close:hover {
+  color: #fff;
+}
+
+.tactical-toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  width: 100%;
+  transform-origin: left;
+  animation: toast-progress linear forwards;
+}
+
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (max-width: 1024px) {
+  .tactical-toast-container {
+    top: auto;
+    bottom: 100px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+  .tactical-toast {
+    width: 100%;
+  }
+}
+
 /* ---------- Tactical CyberScan Animation ---------- */
 .radar-scan {
   position: absolute;

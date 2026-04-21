@@ -11,6 +11,7 @@ import StrategicAdvisory from './components/StrategicAdvisory';
 import { db } from './services/firebaseConfig';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { useLanguage } from './context/LanguageContext';
+import Toast from './components/Toast';
 
 const MapView = lazy(() => import('./components/MapView'));
 
@@ -50,8 +51,18 @@ export default function App() {
   const [leftWidth, setLeftWidth] = useState(280);
   const [rightWidth, setRightWidth] = useState(300);
   const [bottomLeftWidth, setBottomLeftWidth] = useState(320);
+  const [toasts, setToasts] = useState([]);
   const dashBodyRef = useRef(null);
   const resizingRef = useRef(null);
+
+  const addToast = useCallback((message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1024);
@@ -86,13 +97,16 @@ export default function App() {
         if (!body) return;
         const rect = body.getBoundingClientRect();
         const ratio = (e.clientY - rect.top) / rect.height;
-        setTopRatio(Math.max(0.25, Math.min(0.80, ratio)));
+        setTopRatio(Math.max(0.3, Math.min(0.7, ratio))); // Constrain vertical resize
       } else if (type === 'left') {
-        setLeftWidth(Math.max(180, Math.min(450, startValue + (e.clientX - startX))));
+        const newWidth = Math.max(220, Math.min(480, startValue + (e.clientX - startX)));
+        setLeftWidth(newWidth);
       } else if (type === 'right') {
-        setRightWidth(Math.max(200, Math.min(500, startValue - (e.clientX - startX))));
+        const newWidth = Math.max(250, Math.min(500, startValue - (e.clientX - startX)));
+        setRightWidth(newWidth);
       } else if (type === 'bottomLeft') {
-        setBottomLeftWidth(Math.max(200, Math.min(600, startValue + (e.clientX - startX))));
+        const newWidth = Math.max(280, Math.min(600, startValue + (e.clientX - startX)));
+        setBottomLeftWidth(newWidth);
       }
     };
 
@@ -149,31 +163,25 @@ export default function App() {
   }, []);
 
   // --- NEW CAPABILITIES: GPS & LOCATION SAVING ---
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
+  const handleGetLocation = async () => {
     setLoadingRisk(true);
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
+    try {
+      const { reverseGeocode, getBrowserLocation } = await import('./services/geoService');
+      const { lat, lon } = await getBrowserLocation();
       setUserCoords({ lat, lon });
 
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-        const data = await res.json();
-        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || "Current Location";
-        // Run standard search using the found city name
-        await handleUnifiedSearch(city, lat, lon);
-      } catch (err) {
-        console.error("Reverse geocoding failed", err);
-        await handleUnifiedSearch(`Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)}`, lat, lon);
-      }
-    }, (err) => {
+      const city = await reverseGeocode(lat, lon);
+      // Run standard search using the found city name
+      await handleUnifiedSearch(city, lat, lon);
+    } catch (err) {
       setLoadingRisk(false);
-      alert("Unable to retrieve location: " + err.message);
-    });
+      addToast(err.message === "Geolocation not supported" 
+        ? "Geolocation is not supported by your browser" 
+        : `Unable to retrieve location: ${err.message}`, 
+        "error");
+    } finally {
+      setLoadingRisk(false);
+    }
   };
 
   const handleSaveLocation = () => {
@@ -192,7 +200,7 @@ export default function App() {
     const newList = [...savedLocations, locObj];
     setSavedLocations(newList);
     localStorage.setItem('savedLocations', JSON.stringify(newList));
-    alert(`Saved ${sharedLocation} to My Locations!`);
+    addToast(`${sharedLocation} saved to tactical locations.`, "success");
   };
 
   // --- NEW CAPABILITIES: NOTIFICATIONS ---
@@ -210,9 +218,9 @@ export default function App() {
           if (permission === 'granted') {
             setNotificationsEnabled(true);
             localStorage.setItem('notificationsEnabled', 'true');
-            new Notification("Notifications Enabled", { body: "You will now receive tactical alerts." });
+            addToast("Tactical notifications enabled.", "success");
           } else {
-            alert("Notification permission denied by the browser.");
+            addToast("Notification permission denied.", "warning");
           }
         });
       }
@@ -382,13 +390,20 @@ export default function App() {
         </div>
       )}
 
-      {/* ── AUTH MODAL ── */}
-      {showAuth && (
-        <AuthModal
-          onClose={() => setShowAuth(false)}
-          onLoginSuccess={handleLoginSuccess}
         />
       )}
+
+      {/* ── TOAST CONTAINER ── */}
+      <div className="tactical-toast-container">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
