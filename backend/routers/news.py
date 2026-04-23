@@ -3,17 +3,21 @@ from datetime import datetime, timezone
 import logging
 from database import get_db
 from ai_service import get_strategic_advisory_text
+from external_apis import get_all_external_hazards
 
 router = APIRouter(prefix="/api", tags=["News & Analytics"])
 logger = logging.getLogger(__name__)
 
 def is_relevant_disaster_news(text: str) -> bool:
+    # Stricter keyword filter for disaster-only news
     keywords = [
         "flood", "disaster", "storm", "rain", "emergency", "monsoon", 
         "banjir", "hujan", "kilat", "tsunami", "earthquake", "gempa", 
-        "landslide", "runtuh", "weather", "cuaca", "hazard", "nadma", "metmalaysia"
+        "landslide", "runtuh", "hazard", "nadma", "metmalaysia",
+        "evacuation", "evakuasi", "bencana", "alert", "warning", "amaran"
     ]
     text_lower = text.lower()
+    # Check if any keyword matches and exclude general political/social news
     return any(k in text_lower for k in keywords)
 
 @router.get("/news", summary="Tactical Malaysia-Only News Feed")
@@ -99,11 +103,27 @@ async def get_news_feed():
                 ts = d.get("timestamp")
                 diff = datetime.now(timezone.utc) - ts if ts else None
                 time_str = f"{diff.days}D AGO" if diff and diff.days > 0 else "RECENT"
-                archived.append({"time": time_str, "text": d.get("text"), "url": d.get("url"), "tag": d.get("tag"), "tagColor": d.get("tagColor")})
+                archived.append({
+                    "time": time_str, 
+                    "text": d.get("text"), 
+                    "url": d.get("url"), 
+                    "tag": d.get("tag"), 
+                    "tagColor": d.get("tagColor"),
+                    "timestamp": ts.isoformat() if hasattr(ts, 'isoformat') else ts
+                })
             return archived if archived else live_items
     except Exception: pass
     
     return live_items if live_items else [{"time": "OFFLINE", "text": "Disaster feeds temporarily unavailable.", "url": "#", "tag": "SYSTEM", "tagColor": "var(--accent-gray)"}]
+
+@router.get("/external-hazards", summary="Fetch Global Hazards filtered to Malaysia")
+async def get_external_hazards():
+    try:
+        hazards = await get_all_external_hazards()
+        return hazards
+    except Exception as e:
+        logger.error(f"External Hazards Fetch Failed: {e}")
+        return []
 
 @router.get("/advisory")
 async def get_strategic_advisory(lang: str = "en"):

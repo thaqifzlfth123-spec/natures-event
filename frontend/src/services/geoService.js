@@ -16,15 +16,18 @@ export async function reverseGeocode(lat, lon) {
     const data = await res.json();
     
     // Attempt to extract the most relevant location name
-    const city = data.address?.city || 
-                 data.address?.town || 
-                 data.address?.village || 
-                 data.address?.county || 
-                 "Current Location";
-    return city;
+    const address = data.address || {};
+    const city = address.city || address.town || address.village || address.state || "Malaysia";
+    const district = address.city_district || address.county || address.suburb || address.neighbourhood;
+    
+    return {
+      city,
+      district,
+      full: data.display_name
+    };
   } catch (err) {
     console.error("Geocoding Service Error:", err);
-    return `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)}`;
+    return { city: "Malaysia", district: null };
   }
 }
 

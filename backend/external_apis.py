@@ -1,5 +1,6 @@
 import httpx
 import logging
+import os
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -66,15 +67,14 @@ async def fetch_usgs_earthquakes() -> List[Dict[str, Any]]:
 async def fetch_nasa_eonet() -> List[Dict[str, Any]]:
     """Fetch active global natural events from NASA EONET, filtered to Malaysia."""
     url = "https://eonet.gsfc.nasa.gov/api/v3/events?status=open"
-    NASA_API_KEY = "GnTVGyn2g9ecjg9rNtPyJd8jrSlVJipRytB0cOtR"
+    NASA_API_KEY = os.getenv("NASA_API_KEY", "GnTVGyn2g9ecjg9rNtPyJd8jrSlVJipRytB0cOtR")
     events = []
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=5.0)
+            resp = await client.get(url, params={"api_key": NASA_API_KEY}, timeout=8.0)
             if resp.status_code == 200:
                 data = resp.json()
                 for event in data.get("events", []):
-                    # EONET geometry can be Points or Polygons. Check the Points.
                     for geo in event.get("geometry", []):
                         if geo.get("type") == "Point":
                             coords = geo.get("coordinates")
@@ -85,12 +85,11 @@ async def fetch_nasa_eonet() -> List[Dict[str, Any]]:
                                     "source": "NASA EONET",
                                     "type": cat_title,
                                     "title": event.get("title"),
-                                    "lat": lat,
-                                    "lon": lon,
+                                    "lat": lat, "lon": lon,
                                     "time": geo.get("date"),
                                     "url": event.get("sources", [{}])[0].get("url")
                                 })
-                                break # Add event once if it intersects
+                                break
     except Exception as e:
         logger.error(f"NASA EONET Fetch Failed: {e}")
     return events

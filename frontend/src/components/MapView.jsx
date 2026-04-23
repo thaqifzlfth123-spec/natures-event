@@ -4,8 +4,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { db } from '../services/firebaseConfig';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
-import { fetchExternalHazards } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { getDistance } from '../utils/geoUtils';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -24,20 +25,6 @@ const COLORS = {
   shelter: { name: 'green', hex: '#00e676' },
   access: { name: 'orange', hex: '#ff9f43' },
 };
-
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-
 
 function createIcon(colorObj, pulse = false) {
   const { hex } = colorObj;
@@ -102,8 +89,9 @@ const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.
 const STREET_TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 export default function MapView({ 
-  // eslint-disable-next-line no-unused-vars
-  onSearch, onReset, activeFilter, setActiveFilter, activeRegion, userCoords, savedLocations, evacuationTarget, sharedLocation, isDark 
+  onSearch, onReset, activeFilter, setActiveFilter, activeRegion, userCoords, savedLocations, 
+  evacuationTarget, sharedLocation, isDark, isMobile, onGetLocation, setActiveRegion, 
+  externalMarkers = [] 
 }) {
   const { language, t } = useLanguage();
   const [flyTarget, setFlyTarget] = useState(null);
@@ -112,7 +100,9 @@ export default function MapView({
   const [isReporting, setIsReporting] = useState(false);
   const [reportCoords, setReportCoords] = useState(null);
   const [reportType, setReportType] = useState('flood');
+  const [reportSeverity, setReportSeverity] = useState('Medium');
   const [reportText, setReportText] = useState('');
+  const { user } = useAuth();
 
   // React to unified search from the Header component
   useEffect(() => {
@@ -131,6 +121,7 @@ export default function MapView({
 
         if (data && data.length > 0) {
           const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+          // If it's a specific search, use 12, if it's from GPS (handled elsewhere) it might use higher
           setFlyTarget({ coords, zoom: 12 });
         }
       } catch (err) {
@@ -141,13 +132,30 @@ export default function MapView({
     fetchCoordsAndFly();
   }, [sharedLocation]);
 
+  // NEW: React to GPS location from App.jsx
+  useEffect(() => {
+    if (userCoords && !sharedLocation) {
+      setIsScanning(true);
+      setTimeout(() => setIsScanning(false), 3000);
+      setFlyTarget({ coords: [userCoords.lat, userCoords.lon], zoom: 14 });
+    }
+  }, [userCoords, sharedLocation]);
+
   const handleReportSubmit = async () => {
-    if (!reportCoords) return;
+    if (!reportCoords || !reportText.trim()) return;
     try {
-      await addDoc(collection(db, "reports"), { type: reportType, text: reportText, pos: [reportCoords.lat, reportCoords.lng], timestamp: serverTimestamp(), severity: 'High' });
+      await addDoc(collection(db, "reports"), { 
+        type: reportType, 
+        text: reportText, 
+        pos: [reportCoords.lat, reportCoords.lng], 
+        timestamp: serverTimestamp(), 
+        severity: reportSeverity,
+        reporter: user?.email || 'ANONYMOUS'
+      });
       setIsReporting(false);
       setReportCoords(null);
       setReportText('');
+      setReportSeverity('Medium');
     } catch (err) { console.error(err); }
   };
 
@@ -187,35 +195,6 @@ export default function MapView({
     });
   }, []);
 
-  const [externalMarkers, setExternalMarkers] = useState([]);
-
-  useEffect(() => {
-    async function loadExternalData() {
-      const data = await fetchExternalHazards();
-      if (data && data.length > 0) {
-        const mapped = data.map(item => {
-          let type = 'medical';
-          if (item.source === 'USGS' || item.type.toLowerCase().includes('earthquake')) type = 'earthquake';
-          else if (item.type.toLowerCase().includes('fire')) type = 'wildfire';
-          else if (item.type.toLowerCase().includes('storm') || item.type.toLowerCase().includes('monsoon')) type = 'monsoon';
-          else if (item.type.toLowerCase().includes('flood')) type = 'flood';
-
-          let severity = 'Medium';
-          if (item.mag && item.mag >= 5.0) severity = 'High';
-
-          return {
-            id: `ext-${Math.random()}`,
-            pos: [item.lat, item.lon],
-            type,
-            label: `[${item.source}] ${item.title}`,
-            severity,
-          };
-        });
-        setExternalMarkers(mapped);
-      }
-    }
-    loadExternalData();
-  }, []);
 
 
   const allRawMarkers = [...markers, ...liveMarkers, ...externalMarkers];
@@ -247,26 +226,38 @@ export default function MapView({
           className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
           onClick={() => { setMapMode('auto'); setShowRadar(false); }}
         >
-          {isDark ? 'DARK' : 'LIGHT'}
+          {isDark ? t('mapDark') : t('mapLight') || 'LIGHT'}
         </button>
         <button
           className={`map-switcher__btn ${mapMode === 'street' ? 'map-switcher__btn--active' : ''}`}
           onClick={() => { setMapMode(mapMode === 'street' ? 'auto' : 'street'); setShowRadar(false); }}
         >
-          STREET
+          {t('mapStreet')}
         </button>
         <button
           className={`map-switcher__btn ${showRadar ? 'map-switcher__btn--active' : ''}`}
           onClick={() => setShowRadar(prev => !prev)}
         >
-          {showRadar ? 'LIVE: ON' : 'WEATHER'}
+          {showRadar ? 'LIVE: ON' : t('mapWeather')}
         </button>
+
+        {/* NEW DASHBOARD BUTTONS */}
+        <button className="map-switcher__btn" onClick={onGetLocation} title={t('findDistrict')}>
+          {t('findDistrict')}
+        </button>
+        <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
+          {t('myLocation')}
+        </button>
+
         <button
           className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
           onClick={() => setIsReporting(prev => !prev)}
           style={{ background: isReporting ? 'var(--accent-red)' : '' }}
         >
-          {isReporting ? 'CANCEL' : 'REPORT'}
+          {isReporting ? t('mapCancel') : t('mapReport')}
+        </button>
+        <button className="map-switcher__btn" onClick={handleResetClick} title={t('mapResetBtn')}>
+          {t('mapResetBtn')}
         </button>
       </div>
 
@@ -277,7 +268,7 @@ export default function MapView({
         center={[4.2105, 103.5]} // Center of Malaysia
         zoom={7}
         style={{ width: '100%', height: '100%' }}
-        zoomControl={true}
+        zoomControl={!isMobile}
       >
         <MapEvents isReporting={isReporting} onMapClick={setReportCoords} />
         <TileLayer
@@ -318,7 +309,7 @@ export default function MapView({
           .filter(m => Array.isArray(m.pos) && m.pos.length === 2 && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
           .map((m, i) => (
             <Marker key={`${m.id || i}`} position={m.pos} icon={icons[activeFilter === 'all' ? m.type : `${m.type}_pulse`] || icons.flood}>
-              <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{m.label}</strong><br /><span style={{ color: m.severity === 'High' ? '#ff4757' : '#00e676' }}>{language === 'en' ? 'Severity' : 'Tahap'}: {m.severity}</span></div></Popup>
+              <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{m.label}</strong><br /><span style={{ color: m.severity === 'High' ? '#ff4757' : '#00e676' }}>{t('severity')}: {m.severity}</span></div></Popup>
             </Marker>
           ))}
       </MapContainer>
@@ -329,15 +320,15 @@ export default function MapView({
         {Object.keys(COLORS).map(type => (
           <div key={type} className={`map-legend__item ${activeFilter === type ? 'map-legend__item--active' : ''}`} onClick={() => setActiveFilter(type)}>
             <span className="map-legend__dot" style={{ color: COLORS[type].hex, background: COLORS[type].hex }} />
-            {language === 'en' ? type.charAt(0).toUpperCase() + type.slice(1) : t(type) || type}
+            {t(type)}
           </div>
         ))}
       </div>
 
       {isReporting && (
         <div className="report-overlay glass">
-          <div className="report-overlay__header">{language === 'en' ? 'Tactical Field Report' : 'Laporan Taktikal Lapangan'}</div>
-          <div className="report-overlay__step">{reportCoords ? <span style={{ color: 'var(--accent-green)' }}>✓ Location Locked</span> : <span className="pulse-text">{language === 'en' ? 'Click map to mark incident' : 'Klik peta untuk tanda insiden'}</span>}</div>
+          <div className="report-overlay__header">{t('tacticalFieldReport')}</div>
+          <div className="report-overlay__step">{reportCoords ? <span style={{ color: 'var(--accent-green)' }}>✓ {t('locationLocked')}</span> : <span className="pulse-text">{t('clickMapMark')}</span>}</div>
           {reportCoords && (
             <div className="fade-in">
               <select className="report-overlay__select" value={reportType} onChange={e => setReportType(e.target.value)}>
@@ -347,8 +338,26 @@ export default function MapView({
                 <option value="medical">{language === 'en' ? 'Medical Emergency' : 'Kecemasan Perubatan'}</option>
                 <option value="access">{language === 'en' ? 'Road Blocked' : 'Jalan Terhalang'}</option>
               </select>
-              <textarea className="report-overlay__input" placeholder={language === 'en' ? 'Description...' : 'Keterangan...'} value={reportText} onChange={e => setReportText(e.target.value)} />
-              <button className="report-overlay__btn" onClick={handleReportSubmit}>{language === 'en' ? 'SUBMIT INTELLIGENCE' : 'HANTAR PERISIKAN'}</button>
+              <select 
+                className="report-overlay__select" 
+                value={reportSeverity} 
+                onChange={e => setReportSeverity(e.target.value)}
+                style={{ marginTop: '8px', borderColor: reportSeverity === 'Critical' ? 'var(--accent-red)' : 'var(--border-color)' }}
+              >
+                <option value="Low">{language === 'en' ? 'Severity: Low' : 'Tahap: Rendah'}</option>
+                <option value="Medium">{language === 'en' ? 'Severity: Medium' : 'Tahap: Sederhana'}</option>
+                <option value="High">{language === 'en' ? 'Severity: High' : 'Tahap: Tinggi'}</option>
+                <option value="Critical">{language === 'en' ? 'Severity: CRITICAL' : 'Tahap: KRITIKAL'}</option>
+              </select>
+              <textarea className="report-overlay__input" placeholder={language === 'en' ? 'Description (required)...' : 'Keterangan (diperlukan)...'} value={reportText} onChange={e => setReportText(e.target.value)} />
+              <button 
+                className="report-overlay__btn" 
+                onClick={handleReportSubmit}
+                disabled={!reportText.trim()}
+                style={{ opacity: reportText.trim() ? 1 : 0.5 }}
+              >
+                {t('submitIntelligence')}
+              </button>
             </div>
           )}
         </div>

@@ -1,3 +1,4 @@
+
 import os
 import httpx
 import logging
@@ -291,6 +292,8 @@ async def get_strategic_advisory_text(news_items: list, lang: str = "en") -> str
     You are the Senior Intelligence Officer for Guardian Elite National Disaster Platform.
     Synthesize the following recent situation reports into a single, high-density tactical SITREP (Situation Report).
     
+    IMPORTANT: Focus EXCLUSIVELY on the geographic context of MALAYSIA. Ignore any international data points that are not relevant to the local Malaysian context.
+    
     NEWS FEED:
     {news_context}
     
@@ -298,7 +301,7 @@ async def get_strategic_advisory_text(news_items: list, lang: str = "en") -> str
     1. Language: {lang}
     2. Format: Single paragraph, max 250 characters.
     3. Tone: Professional, mission-critical, authoritative.
-    4. Content: Highlight active threats and immediate responder priority.
+    4. Content: Highlight active threats in Malaysia and immediate responder priority.
     
     Output exactly the SITREP text, no preamble.
     """

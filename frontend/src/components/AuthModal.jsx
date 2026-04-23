@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { registerUser } from '../services/api';
-import { loginWithEmail } from '../services/firebaseConfig';
+import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ onClose, onLoginSuccess }) {
   const [mode, setMode] = useState('login'); // 'login' or 'register'
@@ -8,6 +8,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,26 +17,12 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
 
     try {
       if (mode === 'login') {
-        // === LOGIN ===
-        // Firebase client-side login: authenticates the user and returns an ID token.
-        // The ID token can then be sent to the backend as a Bearer token
-        // to access protected routes like GET /api/auth/me
-        //
-        // REQUIRED: Set your Firebase config in src/services/firebaseConfig.js
-        // Make sure "Email/Password" is enabled in Firebase Console > Authentication > Sign-in method
-        const { user, idToken } = await loginWithEmail(email, password);
+        const { user, idToken } = await login(email, password);
         onLoginSuccess?.({ email: user.email, uid: user.uid, idToken });
         onClose();
       } else {
-        // === REGISTER ===
-        // Calls POST /api/auth/register on the FastAPI backend
-        // This creates the user via firebase-admin SDK server-side
-        //
-        // REQUIRED: The backend needs FIREBASE_CREDENTIALS_PATH in .env
-        // pointing to your firebase-service-account.json file
         const data = await registerUser(email, password);
-        // After successful registration, auto-login
-        const { user, idToken } = await loginWithEmail(email, password);
+        const { user, idToken } = await login(email, password);
         onLoginSuccess?.({ email: user.email, uid: data.uid || user.uid, idToken });
         onClose();
       }

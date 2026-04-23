@@ -59,7 +59,16 @@ export default function AlertSummary() {
                 <span className="alert-item__type" style={{ color: n.tagColor || 'var(--accent-gold)' }}>
                   [{n.tag || 'OFFICIAL UPDATE'}]
                 </span>
-                <span className="alert-item__time">{n.time}</span>
+                <span className="alert-item__time">
+                  {(() => {
+                    if (!n.timestamp) return n.time;
+                    const d = new Date(n.timestamp);
+                    const diffMs = new Date() - d;
+                    const diffHr = Math.floor(diffMs / 3600000);
+                    if (diffHr < 1) return 'JUST NOW';
+                    return `${diffHr}h ago`;
+                  })()}
+                </span>
               </div>
               <div className="alert-item__desc" style={{ marginBottom: '8px' }}>{n.text}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

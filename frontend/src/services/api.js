@@ -165,3 +165,17 @@ export async function getStrategicAdvisory(lang = 'en') {
     return { advisory: lang === 'en' ? "Strategic advisory triage failed." : "Gagal triaj penasihat strategik." };
   }
 }
+
+// -----------------------------------------------------------------------------
+// 9. HISTORICAL HAZARDS — GET /api/historical-hazards
+// -----------------------------------------------------------------------------
+export async function fetchHistoricalHazards(location) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/historical-hazards?location=${encodeURIComponent(location)}`);
+    if (!res.ok) throw new Error(`Historical Hazards error: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("fetchHistoricalHazards failed:", err);
+    throw err;
+  }
+}

@@ -1,45 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function SensorGrid() {
-  const [sensors, setSensors] = useState([
-    { id: 'flood',    name: 'Flood Sensors',            sub: '922 online',       value: 922,    color: 'var(--accent-blue)' },
-    { id: 'river',    name: 'River Level Monitors',     sub: 'DID Stations',     value: 312,    color: 'var(--accent-cyan)' },
-    { id: 'reports',  name: 'Community Reports',        sub: 'Verified Pins',    value: 173,    color: 'var(--accent-green)' },
-    { id: 'responders', name: 'Active Responders',      sub: 'NADMA / Bomba',    value: 46,     color: 'var(--accent-gold)' },
-  ]);
+export default function SensorGrid({ nearbyHazards = [] }) {
+  const { t, language } = useLanguage();
 
-  // Live simulation: slightly fluctuate values every 4 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSensors(prev => prev.map(s => {
-        // Randomly add/subtract 1 or 2
-        const fluctuation = Math.floor(Math.random() * 5) - 2; 
-        const newValue = Math.max(0, s.value + fluctuation);
-        
-        let newSub = s.sub;
-        if (s.id === 'flood') newSub = `${newValue} online`;
-        
-        return { ...s, value: newValue, sub: newSub };
-      }));
-    }, 4000);
+  const menuItems = useMemo(() => {
+    // Group nearby hazards by type
+    const counts = nearbyHazards.reduce((acc, h) => {
+      const type = h.type?.toLowerCase() || 'unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
 
-    return () => clearInterval(interval);
-  }, []);
+    return [
+      { 
+        id: 'nearby_total', 
+        name: language === 'en' ? 'Nearby Threats' : 'Ancaman Berdekatan', 
+        sub: '50km Radius', 
+        value: nearbyHazards.length, 
+        color: nearbyHazards.length > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
+      },
+      { 
+        id: 'nearby_floods', 
+        name: language === 'en' ? 'Active Floods' : 'Banjir Aktif', 
+        sub: 'Tactical Sectors', 
+        value: counts['flood'] || 0, 
+        color: 'var(--accent-cyan)' 
+      },
+      { 
+        id: 'nearby_storm', 
+        name: language === 'en' ? 'Storm Activity' : 'Aktiviti Ribut', 
+        sub: 'MetMal Alert', 
+        value: (counts['monsoon'] || 0) + (counts['storm'] || 0), 
+        color: 'var(--accent-gold)' 
+      },
+      { 
+        id: 'nearby_critical', 
+        name: language === 'en' ? 'Critical Events' : 'Kejadian Kritikal', 
+        sub: 'Immediate Priority', 
+        value: nearbyHazards.filter(h => h.severity === 'Critical').length, 
+        color: '#ff0080' 
+      },
+    ];
+  }, [nearbyHazards, language]);
 
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
-        <span className="panel-header__title">Sensor Grid</span>
+        <span className="panel-header__title">{language === 'en' ? 'Tactical Menu' : 'Menu Taktikal'}</span>
         <span className="panel-header__badge panel-header__badge--live">LIVE</span>
       </div>
       <div className="panel-body">
-        {sensors.map((s) => (
+        {menuItems.map((s) => (
           <div className="sensor-item" key={s.id}>
             <div className="sensor-item__label">
               <span className="sensor-item__dot" style={{ 
                 background: s.color,
                 boxShadow: `0 0 8px ${s.color}`,
-                animation: 'pulse-glow 2s infinite'
+                animation: s.value > 0 ? 'pulse-glow 2s infinite' : 'none'
               }} />
               <div>
                 {s.name}

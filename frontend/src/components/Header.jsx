@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header({
   onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark,
   onSearch, onReset, activeRegion, setActiveRegion, onGetLocation, onSaveLocation,
-  notificationsEnabled, onToggleNotifications, savedLocations
+  notificationsEnabled, onToggleNotifications, savedLocations, isHighAlert
 }) {
   const [time, setTime] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
   const { language, toggleLanguage, t } = useLanguage();
+  const { user, logout } = useAuth();
   const [locDropdownOpen, setLocDropdownOpen] = useState(false);
 
   // FIX #3: Hover-reveal search bar state
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [isSearchPinned, setIsSearchPinned] = useState(false);
   const [searchVal, setSearchVal] = useState('');
 
   // Auto-update timestamp every second
@@ -38,12 +41,14 @@ export default function Header({
     if (typeof onSearch === 'function') {
       onSearch(searchVal);
     }
-    setSearchExpanded(false);
+    // Keep it pinned if searched
+    setIsSearchPinned(true);
   };
 
   const handleSearchReset = () => {
     setSearchVal('');
     setSearchExpanded(false);
+    setIsSearchPinned(false);
     if (typeof onReset === 'function') {
       onReset();
     }
@@ -65,7 +70,7 @@ export default function Header({
           className={`header__nav-btn ${locDropdownOpen ? 'header__nav-btn--active' : ''}`}
           onClick={() => setLocDropdownOpen(!locDropdownOpen)}
         >
-          LOCATIONS ▼
+          {t('regions')} ▼
         </button>
 
         {locDropdownOpen && (
@@ -73,7 +78,7 @@ export default function Header({
 
             {/* Regions Submenu */}
             <div style={{ paddingBottom: '5px', borderBottom: '1px solid var(--border-color)' }}>
-              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>REGIONS</span>
+              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>{t('regions')}</span>
               <div style={{ maxHeight: '100px', overflowY: 'auto', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {regionsList.map(r => (
                   <button key={r} className={`header__nav-btn ${activeRegion === r ? 'header__nav-btn--active' : ''}`} style={{ fontSize: '11px', textAlign: 'left', padding: '4px' }} onClick={() => { setActiveRegion(r); onSearch(r); setLocDropdownOpen(false); }}>
@@ -85,17 +90,17 @@ export default function Header({
 
             {/* District Target */}
             <div style={{ paddingBottom: '5px', borderBottom: '1px solid var(--border-color)' }}>
-              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>DISTRICT (GPS)</span>
+              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>{t('district')} (GPS)</span>
               <button className="header__nav-btn" style={{ fontSize: '11px', width: '100%', textAlign: 'left', padding: '4px', marginTop: '5px' }} onClick={() => { setActiveRegion('DISTRICT'); onGetLocation(); setLocDropdownOpen(false); }}>
-                Find My District
+                {t('findDistrict')}
               </button>
             </div>
 
             {/* My Locations Submenu */}
             <div>
-              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>MY LOCATIONS (5KM RADIUS)</span>
+              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>{t('myLocations')} (5KM RADIUS)</span>
               <button className={`header__nav-btn ${activeRegion === 'MY LOCATIONS' ? 'header__nav-btn--active' : ''}`} style={{ fontSize: '11px', width: '100%', textAlign: 'left', padding: '4px', marginTop: '5px' }} onClick={() => { setActiveRegion('MY LOCATIONS'); setLocDropdownOpen(false); }}>
-                Activate Saved Radius
+                {t('myLocations')}
               </button>
               <div style={{ maxHeight: '100px', overflowY: 'auto', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {savedLocations.map((loc, i) => (
@@ -113,28 +118,28 @@ export default function Header({
 
       {/* FIX #3: Hover-reveal Search Bar (Desktop) */}
       <div
-        className={`header__search ${searchExpanded ? 'header__search--expanded' : ''}`}
+        className={`header__search ${(searchExpanded || isSearchPinned) ? 'header__search--expanded' : ''}`}
         onMouseEnter={() => setSearchExpanded(true)}
-        onMouseLeave={() => { if (!searchVal) setSearchExpanded(false); }}
+        onMouseLeave={() => { if (!searchVal && !isSearchPinned) setSearchExpanded(false); }}
       >
         <button
           className="header__search-icon"
-          onClick={() => setSearchExpanded(prev => !prev)}
-          title="Search location"
+          onClick={() => setIsSearchPinned(prev => !prev)}
+          title={t('mapSearchBtn')}
         >
           🔍
         </button>
-        {searchExpanded && (
+        {(searchExpanded || isSearchPinned) && (
           <div className="header__search-bar fade-in">
             <input
               className="header__search-input"
-              placeholder="Search location..."
+              placeholder={t('mapSearchPlaceholder')}
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
               autoFocus
             />
-            <button className="header__search-go" onClick={handleSearchSubmit}>GO</button>
+            <button className="header__search-go" onClick={handleSearchSubmit}>{t('mapSearchBtn')}</button>
             <button className="header__search-go" title="GPS Search" style={{ background: 'transparent', color: 'var(--accent-cyan)' }} onClick={onGetLocation}>📍</button>
             {searchVal && (
               <>
@@ -149,7 +154,9 @@ export default function Header({
       {/* Right Section: Timestamp, Status, Login, Theme, Lang (Desktop) */}
       <div className="header__right">
         <span className="header__timestamp telemetry">{t('lastSync')}: {formattedTime}</span>
-        <span className="header__status header__status--high">{t('highAlert')}</span>
+        <span className={`header__status ${isHighAlert ? 'header__status--high' : 'header__status--normal'}`}>
+          {isHighAlert ? t('highAlert') : (language === 'en' ? 'SECURE' : 'SELAMAT')}
+        </span>
 
         {/* Language Toggle */}
         <button
@@ -157,12 +164,23 @@ export default function Header({
           onClick={toggleLanguage}
           style={{ borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)', minWidth: '60px' }}
         >
-          {language === 'en' ? 'EN' : 'BM'}
+          {language === 'en' ? 'EN / BM' : 'BM / EN'}
         </button>
 
-        <button className="header__login-btn" onClick={onLoginClick}>
-          {t('loginRegister')}
-        </button>
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="telemetry" style={{ fontSize: '9px', color: 'var(--accent-green)', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user.email}
+            </span>
+            <button className="header__login-btn" onClick={logout} style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', minWidth: '70px' }}>
+              LOGOUT
+            </button>
+          </div>
+        ) : (
+          <button className="header__login-btn" onClick={onLoginClick}>
+            {t('loginRegister')}
+          </button>
+        )}
         <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
           {notificationsEnabled ? '🔕' : '🔔'}
         </button>
@@ -224,9 +242,15 @@ export default function Header({
             </button>
             <span className="header__timestamp">{t('lastSync')}: {formattedTime}</span>
             <span className="header__status header__status--high">{t('highAlert')}</span>
-            <button className="header__login-btn" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
-              {t('loginRegister')}
-            </button>
+            {user ? (
+              <button className="header__login-btn" style={{ width: '100%', borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }} onClick={() => { logout(); setMenuOpen(false); }}>
+                LOGOUT ({user.email})
+              </button>
+            ) : (
+              <button className="header__login-btn" style={{ width: '100%' }} onClick={() => { onLoginClick(); setMenuOpen(false); }}>
+                {t('loginRegister')}
+              </button>
+            )}
             <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
               {notificationsEnabled ? 'Notifications: ON' : 'Notifications: OFF'}
             </button>

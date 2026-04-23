@@ -64,12 +64,30 @@ export const translations = {
     mapSearchPlaceholder: "ENTER ADDRESS OR PIN LOCATION",
     mapSearchBtn: "SEARCH",
     mapResetBtn: "RESET",
-    tacticalFilters: "Tactical Filters",
+    findDistrict: "DISTRICT",
+    myLocation: "LOC",
+    tacticalFilters: "SENSOR GRID",
     allEvents: "All Events",
     searchedLoc: "SEARCHED LOCATION",
     safeZone: "SAFE ZONE IDENTIFIED",
     evacPath: "Evacuation Path to Safety",
+    earthquake: "Earthquake",
+    flood: "Flood",
+    monsoon: "Monsoon",
+    wildfire: "Wildfire",
+    medical: "Medical",
+    shelter: "Shelter",
+    access: "Access",
     
+    // Sensor Grid
+    sensorGrid: "SENSOR GRID",
+    floodSensors: "Flood Sensors",
+    riverMonitors: "River Level Monitors",
+    communityReports: "Community Reports",
+    activeResponders: "Active Responders",
+    online: "online",
+    verifiedPins: "Verified Pins",
+
     // Image Analyzer
     imgAnalyzer: "IMAGERY INTELLIGENCE TRIAGE",
     imgScan: "SCAN",
@@ -80,6 +98,13 @@ export const translations = {
     // SITREP / Advisory
     sitrep: "STRATEGIC SITREP (SITUATION REPORT)",
     sitrepLoading: "Assembling tactical intelligence report...",
+
+    // Field Reports
+    tacticalFieldReport: "Tactical Field Report",
+    clickMapMark: "Click map to mark incident",
+    severity: "Severity",
+    submitIntelligence: "SUBMIT INTELLIGENCE",
+    locationLocked: "Location Locked"
   },
   
   bm: {
@@ -143,11 +168,29 @@ export const translations = {
     mapSearchPlaceholder: "MASUKKAN ALAMAT ATAU PIN LOKASI",
     mapSearchBtn: "CARI",
     mapResetBtn: "SEMULA",
-    tacticalFilters: "Penapis Taktikal",
+    findDistrict: "DAERAH",
+    myLocation: "LOKASI",
+    tacticalFilters: "GRID SENSOR",
     allEvents: "Semua Acara",
     searchedLoc: "LOKASI DICARI",
     safeZone: "ZON SELAMAT DIKENALPASTI",
     evacPath: "Laluan Pemindahan ke Keselamatan",
+    earthquake: "Gempa Bumi",
+    flood: "Banjir",
+    monsoon: "Monsun",
+    wildfire: "Kebakaran Hutan",
+    medical: "Perubatan",
+    shelter: "Perlindungan",
+    access: "Akses",
+
+    // Sensor Grid
+    sensorGrid: "GRID SENSOR",
+    floodSensors: "Sensor Banjir",
+    riverMonitors: "Pemantau Paras Sungai",
+    communityReports: "Laporan Komuniti",
+    activeResponders: "Petugas Aktif",
+    online: "aktif",
+    verifiedPins: "Pin Disahkan",
     
     // Image Analyzer
     imgAnalyzer: "TRIAJ PERISIKAN IMEJ",
@@ -159,5 +202,12 @@ export const translations = {
     // SITREP / Advisory
     sitrep: "SITREP STRATEGIK (LAPORAN SITUASI)",
     sitrepLoading: "Mengumpul laporan perisikan taktikal...",
+
+    // Field Reports
+    tacticalFieldReport: "Laporan Taktikal Lapangan",
+    clickMapMark: "Klik peta untuk tanda insiden",
+    severity: "Tahap",
+    submitIntelligence: "HANTAR PERISIKAN",
+    locationLocked: "Lokasi Dikunci"
   }
 };

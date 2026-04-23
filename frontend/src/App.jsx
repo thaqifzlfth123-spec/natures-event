@@ -8,21 +8,26 @@ import ChatBot from './components/ChatBot';
 import AlertSummary from './components/AlertSummary';
 import AuthModal from './components/AuthModal';
 import StrategicAdvisory from './components/StrategicAdvisory';
+import SensorGrid from './components/SensorGrid';
 import { db } from './services/firebaseConfig';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { getDistance } from './utils/geoUtils';
+import { fetchExternalHazards } from './services/api';
 import { useLanguage } from './context/LanguageContext';
+import { useAuth } from './context/AuthContext';
 import Toast from './components/Toast';
 
 const MapView = lazy(() => import('./components/MapView'));
 
 // Vercel Force Redeploy: 2026-04-18T20:00 (Dashboard Layout Refactor)
 export default function App() {
-  // eslint-disable-next-line no-unused-vars
   const { t } = useLanguage();
+  const { user, login } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
-  const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showDistrictModal, setShowDistrictModal] = useState(false);
+  const [districtInfo, setDistrictInfo] = useState(null);
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
@@ -62,6 +67,10 @@ export default function App() {
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  useEffect(() => {
+    handleGetLocation();
   }, []);
 
   useEffect(() => {
@@ -138,7 +147,7 @@ export default function App() {
   }, [leftWidth, rightWidth, bottomLeftWidth, topRatio]);
 
   const handleLoginSuccess = (userData) => {
-    setUser(userData);
+    // Auth handled by context now
     console.log('Logged in:', userData.email);
   };
 
@@ -170,9 +179,16 @@ export default function App() {
       const { lat, lon } = await getBrowserLocation();
       setUserCoords({ lat, lon });
 
-      const city = await reverseGeocode(lat, lon);
+      const geoData = await reverseGeocode(lat, lon);
+      const locationName = typeof geoData === 'object' ? geoData.district || geoData.city : geoData;
+      
+      if (typeof geoData === 'object' && geoData.district) {
+        setDistrictInfo(geoData);
+        setShowDistrictModal(true);
+      }
+
       // Run standard search using the found city name
-      await handleUnifiedSearch(city, lat, lon);
+      await handleUnifiedSearch(locationName, lat, lon);
     } catch (err) {
       setLoadingRisk(false);
       addToast(err.message === "Geolocation not supported" 
@@ -227,8 +243,63 @@ export default function App() {
     }
   };
 
-
   const [liveReports, setLiveReports] = useState([]);
+  const [externalHazards, setExternalHazards] = useState([]);
+  const [nearbyHazards, setNearbyHazards] = useState([]);
+  const [isHighAlert, setIsHighAlert] = useState(false);
+
+  // Consolidated logic to calculate nearby hazards and alert status
+  useEffect(() => {
+    if (!userCoords) {
+      setIsHighAlert(false);
+      setNearbyHazards([]);
+      return;
+    }
+
+    const checkHazards = () => {
+      let highAlertDetected = false;
+      
+      // Map both sources to a common structure
+      const allHazards = [
+        ...liveReports.map(r => ({ ...r, lat: r.pos?.[0], lon: r.pos?.[1] })),
+        ...externalHazards.map(h => ({ ...h, lat: h.pos?.[0], lon: h.pos?.[1] }))
+      ];
+
+      const nearby = allHazards.filter(hazard => {
+        if (hazard.lat === undefined || hazard.lon === undefined) return false;
+        const dist = getDistance(userCoords.lat, userCoords.lon, hazard.lat, hazard.lon);
+        if (dist <= 50) { // 50km radius
+          if (hazard.severity === 'High' || hazard.severity === 'Critical') {
+            highAlertDetected = true;
+          }
+          return true;
+        }
+        return false;
+      });
+
+      setNearbyHazards(nearby);
+      setIsHighAlert(highAlertDetected);
+    };
+
+    checkHazards();
+  }, [userCoords, liveReports, externalHazards]);
+
+  // Fetch external hazards once on load
+  useEffect(() => {
+    fetchExternalHazards().then(data => {
+      if (data && data.length > 0) {
+        // Map external data to common structure
+        const mapped = data.map(item => ({
+          id: `ext-${Math.random()}`,
+          pos: [item.lat, item.lon],
+          type: item.type?.toLowerCase().includes('earthquake') ? 'earthquake' : 
+                item.type?.toLowerCase().includes('flood') ? 'flood' : 'medical',
+          severity: (item.mag && item.mag >= 5) ? 'High' : 'Medium'
+        }));
+        setExternalHazards(mapped);
+      }
+    }).catch(console.error);
+  }, []);
   useEffect(() => {
     const q = query(collection(db, "reports"), orderBy("timestamp", "desc"));
     return onSnapshot(q, (snapshot) => {
@@ -268,6 +339,7 @@ export default function App() {
         onToggleNotifications={handleToggleNotifications}
         user={user}
         savedLocations={savedLocations}
+        isHighAlert={isHighAlert}
       />
 
       {/* ── DASHBOARD BODY (Vertically Resizable Top/Bottom Groups) ── */}
@@ -286,6 +358,7 @@ export default function App() {
             style={!isMobile ? { width: leftWidth, flexShrink: 0 } : undefined}
           >
             <RiskGauges />
+            <SensorGrid nearbyHazards={nearbyHazards} />
             <NewsFeed reports={liveReports} />
           </div>
 
@@ -304,10 +377,15 @@ export default function App() {
               activeFilter={activeFilter}
               setActiveFilter={setActiveFilter}
               activeRegion={activeRegion}
+              setActiveRegion={setActiveRegion}
               userCoords={userCoords}
               savedLocations={savedLocations}
+              evacuationTarget={evacuationTarget}
               sharedLocation={sharedLocation}
               isDark={isDark}
+              isMobile={isMobile}
+              onGetLocation={handleGetLocation}
+              externalMarkers={externalHazards} // Pass external markers from App state
             />
           </ErrorBoundary>
 
@@ -390,7 +468,44 @@ export default function App() {
         </div>
       )}
 
+      {/* ── AUTHENTICATION MODAL ── */}
+      {showAuth && (
+        <AuthModal 
+          onClose={() => setShowAuth(false)} 
+          onLoginSuccess={handleLoginSuccess}
         />
+      )}
+
+      {/* ── DISTRICT FOUND MODAL ── */}
+      {showDistrictModal && districtInfo && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal glass fade-in" style={{ borderColor: 'var(--accent-cyan)', maxWidth: '400px' }}>
+            <div className="modal__title telemetry" style={{ color: 'var(--accent-cyan)', letterSpacing: '2px' }}>
+              LOC_TARGET_IDENTIFIED
+            </div>
+            <div style={{ marginTop: '20px', padding: '15px', borderLeft: '2px solid var(--accent-cyan)', background: 'rgba(0,212,255,0.05)' }}>
+              <div style={{ fontSize: '10px', color: '#889' }}>CURRENT DISTRICT</div>
+              <div style={{ fontSize: '20px', fontWeight: '800', color: '#fff', textTransform: 'uppercase' }}>
+                {districtInfo.district || districtInfo.city}
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--accent-cyan)', marginTop: '5px' }}>
+                {districtInfo.city}, Malaysia
+              </div>
+            </div>
+            <div className="telemetry" style={{ fontSize: '9px', marginTop: '15px', color: '#667' }}>
+              STATUS: TRACKING ACTIVE<br />
+              ACCURACY: HIGH_PRECISION<br />
+              COORDINATES: {userCoords?.lat.toFixed(4)}, {userCoords?.lon.toFixed(4)}
+            </div>
+            <button 
+              className="modal__btn" 
+              style={{ marginTop: '25px', background: 'var(--accent-cyan)', color: '#000' }}
+              onClick={() => setShowDistrictModal(false)}
+            >
+              ACKNOWLEDGE & MONITOR
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ── TOAST CONTAINER ── */}
