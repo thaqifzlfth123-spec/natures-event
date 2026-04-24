@@ -5,13 +5,13 @@ from ai_service import get_gemini_client, get_chatbot_stream, check_hazard_risk
 
 async def test_triple_safe():
     load_dotenv()
-    print("--- 🛡️ Triple-Safe AI Logic Test ---")
+    print("--- [SITREP] Triple-Safe AI Logic Test ---")
     
     # 1. Check which client is currently chosen as Primary
     client, is_vertex = get_gemini_client()
     if client:
         primary_name = "VERTEX AI (Credits)"
-        print(f"🥇 Primary Gemini Source: {primary_name}")
+        print(f"[PRIMARY] Gemini Source: {primary_name}")
     else:
         print("🥇 No Gemini client available.")
 
@@ -21,7 +21,7 @@ async def test_triple_safe():
         hazard, risk, explanation = await check_hazard_risk("Kuala Lumpur", "Heavy Rain, 30C, 90% humidity")
         print(f"Result: {hazard} | Risk: {risk}")
         print(f"Explanation: {explanation[:100]}...")
-        print("✅ SUCCESS: Hazard Analysis responded correctly.")
+        print("[OK] SUCCESS: Hazard Analysis responded correctly.")
     except Exception as e:
         print(f"❌ FAILED: Hazard Analysis error: {e}")
 
@@ -33,7 +33,7 @@ async def test_triple_safe():
         async for chunk in get_chatbot_stream("Is there a flood in Johor right now?"):
             response_text += chunk
         print(f"Chatbot says: {response_text[:100]}...")
-        print("✅ SUCCESS: Chatbot responded correctly.")
+        print("[OK] SUCCESS: Chatbot responded correctly.")
     except Exception as e:
         print(f"❌ FAILED: Chatbot error: {e}")
 

@@ -1,4 +1,3 @@
-
 import os
 import httpx
 import logging
@@ -9,6 +8,7 @@ from google.genai import types  # pyright: ignore[reportMissingImports]
 from dotenv import load_dotenv # type: ignore
 
 load_dotenv()
+from weather_service import get_real_weather
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 gcp_project = os.getenv("GCP_PROJECT_ID")
 gcp_location = os.getenv("GCP_LOCATION", "asia-southeast1")
 gemini_client_vertex = None
+api_key_fallback = os.getenv("GEMINI_API_KEY")
 
 # 🚀 1. Attempt Vertex AI (Uses GCP Credits or Default Environment Credentials)
 try:
@@ -31,6 +32,12 @@ try:
     logger.info(f"🚀 Gemini Vertex AI Ready (Project: {gcp_project or 'Auto-detected'})")
 except Exception as e:
     logger.error(f"⚠️ Vertex AI initialization failed: {e}")
+    if api_key_fallback:
+        try:
+            gemini_client_vertex = genai.Client(api_key=api_key_fallback)
+            logger.info("🚀 Gemini API Key Client Ready (Fallback)")
+        except Exception as e2:
+            logger.error(f"⚠️ API Key fallback also failed: {e2}")
 
 GEMINI_MODEL = "gemini-2.5-flash"
 
@@ -195,7 +202,6 @@ async def get_chatbot_stream(message: str):
 
     if extraction and extraction.upper() != "NONE" and "NONE" not in extraction.upper():
         try:
-            from weather_service import get_real_weather
             live_weather_data = await get_real_weather(extraction)
         except Exception as e:
             logger.warning(f"Weather data fetch failed: {e}")
