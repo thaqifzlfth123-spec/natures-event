@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from datetime import datetime, timezone
 import logging
+import os
 from database import get_db
 from ai_service import get_strategic_advisory_text
 from external_apis import get_all_external_hazards
@@ -124,6 +125,68 @@ async def get_external_hazards():
     except Exception as e:
         logger.error(f"External Hazards Fetch Failed: {e}")
         return []
+
+
+@router.get("/firms-wildfires", summary="NASA FIRMS Near Real-Time Wildfires in Malaysia")
+async def get_firms_wildfires():
+    import httpx
+    import csv
+    import io
+
+    api_key = os.getenv("NASA_FIRMS_KEY")
+    if not api_key:
+        logger.error("NASA_FIRMS_KEY environment variable not set.")
+        return []
+
+    # Malaysia bounding box: lat 0.5-7.5, lon 99.5-119.5
+    # VIIRS_SNPP_NRT: highest quality near-real-time source (24h window)
+    area = "99.5,0.5,119.5,7.5"
+    day_range = 1  # past 24 hours
+    url = (
+        f"https://firms.modaps.eosdis.nasa.gov/api/area/csv"
+        f"/{api_key}/VIIRS_SNPP_NRT/{area}/{day_range}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+
+        reader = csv.DictReader(io.StringIO(response.text))
+        fire_points = []
+        for row in reader:
+            try:
+                lat = float(row["latitude"])
+                lon = float(row["longitude"])
+                # frp = Fire Radiative Power in MW (intensity proxy)
+                frp = float(row.get("frp", 0))
+                confidence = row.get("confidence", "nominal")  # low/nominal/high
+                acq_date = row.get("acq_date", "")
+                acq_time = row.get("acq_time", "")
+
+                fire_points.append({
+                    "lat": lat,
+                    "lon": lon,
+                    "frp": frp,
+                    "confidence": confidence,
+                    "acq_date": acq_date,
+                    "acq_time": acq_time,
+                    # Derive severity from FRP (Fire Radiative Power)
+                    "severity": "Critical" if frp > 50 else "High" if frp > 15 else "Medium",
+                })
+            except (ValueError, KeyError):
+                continue  # Skip malformed rows
+
+        logger.info(f"[FIRMS] Fetched {len(fire_points)} wildfire points for Malaysia.")
+        return fire_points
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[FIRMS] HTTP error: {e.response.status_code} - {e.response.text[:200]}")
+        return []
+    except Exception as e:
+        logger.error(f"[FIRMS] Unexpected error: {e}")
+        return []
+
 
 @router.get("/advisory")
 async def get_strategic_advisory(lang: str = "en"):

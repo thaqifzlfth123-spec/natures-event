@@ -41,6 +41,12 @@ export default function App() {
   // eslint-disable-next-line no-unused-vars
   const [evacuationTarget, setEvacuationTarget] = useState(null);
 
+  // Shared coordinate state — set when a news item is clicked to pan the map
+  const [focusCoords, setFocusCoords] = useState(null);
+
+  // NASA FIRMS near-real-time wildfire markers for Malaysia
+  const [firmsMarkers, setFirmsMarkers] = useState([]);
+
   // NEW FEATURE STATES
   const [activeRegion, setActiveRegion] = useState('REGIONS');
   const [savedLocations, setSavedLocations] = useState(() => {
@@ -307,6 +313,37 @@ export default function App() {
     });
   }, []);
 
+  // ── NASA FIRMS: Fetch near-real-time wildfires for Malaysia ──
+  useEffect(() => {
+    const fetchFirms = async () => {
+      try {
+        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const res = await fetch(`${BASE_URL}/api/firms-wildfires`);
+        if (!res.ok) throw new Error(`FIRMS API error: ${res.status}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((f, i) => ({
+            id: `firms-${i}-${f.lat}-${f.lon}`,
+            pos: [f.lat, f.lon],
+            type: 'wildfire',
+            severity: f.severity || 'Medium',
+            label: `🔥 FIRMS Wildfire | FRP: ${f.frp} MW | ${f.acq_date} ${f.acq_time}`,
+            lat: f.lat,
+            lon: f.lon,
+          }));
+          setFirmsMarkers(mapped);
+        }
+      } catch (err) {
+        console.error('[FIRMS] Failed to load wildfire data:', err);
+      }
+    };
+
+    fetchFirms();
+    // Refresh every 30 minutes — FIRMS NRT data updates ~every 3h, 30min is a safe interval
+    const firmsInterval = setInterval(fetchFirms, 30 * 60 * 1000);
+    return () => clearInterval(firmsInterval);
+  }, []);
+
   return (
     <div className="dashboard" ref={dashRef}>
       {/* ── HEADER (with search) ── */}
@@ -385,7 +422,8 @@ export default function App() {
               isDark={isDark}
               isMobile={isMobile}
               onGetLocation={handleGetLocation}
-              externalMarkers={externalHazards} // Pass external markers from App state
+              externalMarkers={[...externalHazards, ...firmsMarkers]}
+              focusCoords={focusCoords}
             />
           </ErrorBoundary>
 
@@ -425,7 +463,7 @@ export default function App() {
             style={!isMobile ? { width: bottomLeftWidth, flexShrink: 0 } : undefined}
           >
             <ErrorBoundary fallback="News Feed unavailable">
-              <AlertSummary />
+              <AlertSummary onSelectLocation={(lat, lon) => setFocusCoords({ lat, lon })} />
             </ErrorBoundary>
           </div>
 

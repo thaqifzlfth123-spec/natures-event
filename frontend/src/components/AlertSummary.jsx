@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLiveNews } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function AlertSummary() {
+export default function AlertSummary({ onSelectLocation }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
@@ -49,7 +49,11 @@ export default function AlertSummary() {
               key={i}
               style={{ animationDelay: `${i * 0.1}s`, cursor: hasLink ? 'pointer' : 'default' }}
               onClick={() => {
-                // FIX #4: Clicking the entire card opens the specific article URL
+                // If this news item carries geo coordinates, pan the map to it
+                if (n.lat && n.lon && typeof onSelectLocation === 'function') {
+                  onSelectLocation(n.lat, n.lon);
+                }
+                // Standard: open article URL in new tab
                 if (hasLink) {
                   window.open(n.url, '_blank', 'noopener,noreferrer');
                 }

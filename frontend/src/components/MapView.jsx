@@ -66,6 +66,22 @@ const icons = {
     iconAnchor: [12, 24],
     popupAnchor: [0, -24],
   }),
+  // Custom icon for NASA FIRMS satellite-detected fire hotspots
+  wildfire_firms: L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div class="sonar-pulse" style="background: rgba(255,100,0,0.3)"></div>
+      <div style="
+        width:12px; height:12px; border-radius:50%;
+        background: radial-gradient(circle, #ff6600, #ff2200);
+        border: 2px solid rgba(255,200,0,0.9);
+        box-shadow: 0 0 10px #ff4400, 0 0 20px rgba(255,100,0,0.5);
+        position: relative; z-index: 2;
+      "></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+    popupAnchor: [0, -10],
+  }),
 };
 
 // Malaysia-focused disaster pins (No longer mocked, filled dynamically)
@@ -91,7 +107,8 @@ const STREET_TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 export default function MapView({ 
   onSearch, onReset, activeFilter, setActiveFilter, activeRegion, userCoords, savedLocations, 
   evacuationTarget, sharedLocation, isDark, isMobile, onGetLocation, setActiveRegion, 
-  externalMarkers = [] 
+  externalMarkers = [],
+  focusCoords = null
 }) {
   const { language, t } = useLanguage();
   const [flyTarget, setFlyTarget] = useState(null);
@@ -140,6 +157,12 @@ export default function MapView({
       setFlyTarget({ coords: [userCoords.lat, userCoords.lon], zoom: 14 });
     }
   }, [userCoords, sharedLocation]);
+
+  // ── React to map-pan requests from the News Feed click (focusCoords) ──
+  useEffect(() => {
+    if (!focusCoords) return;
+    setFlyTarget({ coords: [focusCoords.lat, focusCoords.lon], zoom: 13 });
+  }, [focusCoords]);
 
   const handleReportSubmit = async () => {
     if (!reportCoords || !reportText.trim()) return;
@@ -312,6 +335,36 @@ export default function MapView({
               <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{m.label}</strong><br /><span style={{ color: m.severity === 'High' ? '#ff4757' : '#00e676' }}>{t('severity')}: {m.severity}</span></div></Popup>
             </Marker>
           ))}
+
+        {/* ── NASA FIRMS Near Real-Time Wildfire Layer ── */}
+        {externalMarkers
+          .filter(m => m.id && m.id.startsWith('firms-'))
+          .filter(m => Array.isArray(m.pos) && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
+          .map((m) => (
+            <Marker
+              key={m.id}
+              position={m.pos}
+              icon={icons.wildfire_firms}
+            >
+              <Popup>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', minWidth: '180px' }}>
+                  <strong style={{ color: '#ff6600' }}>🔥 NASA FIRMS WILDFIRE</strong>
+                  <br />
+                  <span style={{ color: '#aaa' }}>Source:</span> VIIRS SNPP NRT
+                  <br />
+                  <span style={{ color: '#aaa' }}>Coords:</span> {m.pos[0].toFixed(4)}, {m.pos[1].toFixed(4)}
+                  <br />
+                  <span style={{ color: '#aaa' }}>Severity:</span>{' '}
+                  <span style={{ color: m.severity === 'Critical' ? '#ff0055' : m.severity === 'High' ? '#ff4757' : '#ff9f43' }}>
+                    {m.severity?.toUpperCase()}
+                  </span>
+                  <br />
+                  <span style={{ color: '#aaa', fontSize: '9px' }}>{m.label}</span>
+                </div>
+              </Popup>
+            </Marker>
+          ))
+        }
       </MapContainer>
 
       <div className="map-legend">
