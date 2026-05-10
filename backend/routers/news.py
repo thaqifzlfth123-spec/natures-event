@@ -140,13 +140,15 @@ async def get_firms_wildfires():
 
     # Malaysia bounding box: lat 0.5-7.5, lon 99.5-119.5
     # VIIRS_SNPP_NRT: highest quality near-real-time source
-    # [FIX: Phase 2] day_range = 7 (past 7 days) — user-requested window
+    # [FIX: Phase 2] day_range = 5 (past 5 days) — user-requested window
     area = "99.5,0.5,119.5,7.5"
-    day_range = 7  # past 7 days
+    day_range = 5  # past 5 days
     url = (
         f"https://firms.modaps.eosdis.nasa.gov/api/area/csv"
         f"/{api_key}/VIIRS_SNPP_NRT/{area}/{day_range}"
     )
+
+    fire_points = []
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -154,7 +156,6 @@ async def get_firms_wildfires():
             response.raise_for_status()
 
         reader = csv.DictReader(io.StringIO(response.text))
-        fire_points = []
         for row in reader:
             try:
                 lat = float(row["latitude"])
@@ -180,31 +181,29 @@ async def get_firms_wildfires():
 
         logger.info(f"[FIRMS] Fetched {len(fire_points)} wildfire points for Malaysia.")
 
-        # [FIX: Phase 2 - Mock Fallback] If NASA returns no data (quiet period),
-        # inject representative hotspots from historically active areas in Malaysia
-        # so the frontend UI (markers + feed) can always be verified.
-        if not fire_points:
-            logger.info("[FIRMS] No live data — using historical representative hotspots for UI testing.")
-            fire_points = [
-                {"lat": 3.1390, "lon": 101.6869, "frp": 18.5, "confidence": "nominal",
-                 "acq_date": "HISTORICAL", "acq_time": "0600", "severity": "High",
-                 "note": "Representative hotspot — Kuala Lumpur region"},
-                {"lat": 3.8126, "lon": 103.3256, "frp": 62.1, "confidence": "high",
-                 "acq_date": "HISTORICAL", "acq_time": "0830", "severity": "Critical",
-                 "note": "Representative hotspot — Pahang interior"},
-                {"lat": 2.1896, "lon": 111.6500, "frp": 9.3, "confidence": "low",
-                 "acq_date": "HISTORICAL", "acq_time": "0430", "severity": "Medium",
-                 "note": "Representative hotspot — Sarawak"},
-            ]
-
-        return fire_points
-
     except httpx.HTTPStatusError as e:
         logger.error(f"[FIRMS] HTTP error: {e.response.status_code} - {e.response.text[:200]}")
-        return []
     except Exception as e:
         logger.error(f"[FIRMS] Unexpected error: {e}")
-        return []
+
+    # [FIX: Phase 2 - Mock Fallback] Moved OUTSIDE try-except.
+    # If NASA returns no data or the API fails, inject representative hotspots
+    # so the frontend UI (markers + feed) can always be verified.
+    if not fire_points:
+        logger.info("[FIRMS] No live data or API failed — using historical representative hotspots for UI testing.")
+        fire_points = [
+            {"lat": 3.1390, "lon": 101.6869, "frp": 18.5, "confidence": "nominal",
+             "acq_date": "HISTORICAL", "acq_time": "0600", "severity": "High",
+             "note": "Representative hotspot — Kuala Lumpur region"},
+            {"lat": 3.8126, "lon": 103.3256, "frp": 62.1, "confidence": "high",
+             "acq_date": "HISTORICAL", "acq_time": "0830", "severity": "Critical",
+             "note": "Representative hotspot — Pahang interior"},
+            {"lat": 2.1896, "lon": 111.6500, "frp": 9.3, "confidence": "low",
+             "acq_date": "HISTORICAL", "acq_time": "0430", "severity": "Medium",
+             "note": "Representative hotspot — Sarawak"},
+        ]
+
+    return fire_points
 
 
 @router.get("/advisory")
