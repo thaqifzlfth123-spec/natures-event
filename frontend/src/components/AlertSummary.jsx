@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { getLiveNews } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function AlertSummary({ onSelectLocation }) {
+// [FIX: Phase 3 - Option A] Accept firmsMarkers prop from App.jsx to merge wildfire alerts into this feed
+export default function AlertSummary({ onSelectLocation, firmsMarkers = [] }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
@@ -31,6 +32,22 @@ export default function AlertSummary({ onSelectLocation }) {
     return () => clearInterval(intervalId);
   }, [t]);
 
+  // [FIX: Phase 3 - Option A] Convert firmsMarkers into news-feed-compatible objects
+  // and prepend them to the official news list so wildfires appear at the top
+  const firmsNewsItems = firmsMarkers.map((m) => ({
+    id: m.id,
+    time: m.label?.split('|')[2]?.trim() || 'FIRMS NRT',
+    text: `🔥 Wildfire detected near ${m.pos[0].toFixed(3)}°N, ${m.pos[1].toFixed(3)}°E — ${m.label}`,
+    url: '#',
+    tag: 'NASA FIRMS',
+    tagColor: m.severity === 'Critical' ? '#ff0055' : m.severity === 'High' ? '#ff4757' : '#ff9f43',
+    lat: m.lat,
+    lon: m.lon,
+    timestamp: null,
+  }));
+
+  const displayNews = [...firmsNewsItems, ...news].slice(0, 10);
+
   return (
     <div className="panel" style={{ flex: 1 }}>
       <div className="panel-header">
@@ -40,7 +57,8 @@ export default function AlertSummary({ onSelectLocation }) {
         </span>
       </div>
       <div className="panel-body">
-        {news.slice(0, 8).map((n, i) => {
+        {/* [FIX: Phase 3 - Option A] Render combined FIRMS + official news — up to 10 items */}
+        {displayNews.map((n, i) => {
           const hasLink = n.url && n.url !== '#';
 
           return (
@@ -106,7 +124,7 @@ export default function AlertSummary({ onSelectLocation }) {
             </div>
           );
         })}
-        {news.length === 0 && !loading && (
+        {displayNews.length === 0 && !loading && (
           <div className="text-muted" style={{ fontSize: '10px', textAlign: 'center', marginTop: '20px' }}>
             {t('newsQuiet')}
           </div>

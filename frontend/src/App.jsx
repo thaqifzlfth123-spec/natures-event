@@ -317,8 +317,8 @@ export default function App() {
   useEffect(() => {
     const fetchFirms = async () => {
       try {
-        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const res = await fetch(`${BASE_URL}/api/firms-wildfires`);
+        // [FIX: Phase 1] Use relative path — Vite proxy forwards /api/* to localhost:8080
+        const res = await fetch('/api/firms-wildfires');
         if (!res.ok) throw new Error(`FIRMS API error: ${res.status}`);
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -463,7 +463,11 @@ export default function App() {
             style={!isMobile ? { width: bottomLeftWidth, flexShrink: 0 } : undefined}
           >
             <ErrorBoundary fallback="News Feed unavailable">
-              <AlertSummary onSelectLocation={(lat, lon) => setFocusCoords({ lat, lon })} />
+              {/* [FIX: Phase 3 - Option A] firmsMarkers passed as prop so FIRMS wildfires appear in the news feed */}
+              <AlertSummary
+                onSelectLocation={(lat, lon) => setFocusCoords({ lat, lon })}
+                firmsMarkers={firmsMarkers}
+              />
             </ErrorBoundary>
           </div>
 
