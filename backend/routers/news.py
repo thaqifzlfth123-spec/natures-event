@@ -140,9 +140,9 @@ async def get_firms_wildfires():
 
     # Malaysia bounding box: lat 0.5-7.5, lon 99.5-119.5
     # VIIRS_SNPP_NRT: highest quality near-real-time source
-    # [FIX: Phase 2] NASA FIRMS API max day_range is 5 — use the maximum window
+    # [FIX: Phase 2] day_range = 7 (past 7 days) — user-requested window
     area = "99.5,0.5,119.5,7.5"
-    day_range = 5  # API maximum allowed value (returns HTTP 400 for values > 5)
+    day_range = 7  # past 7 days
     url = (
         f"https://firms.modaps.eosdis.nasa.gov/api/area/csv"
         f"/{api_key}/VIIRS_SNPP_NRT/{area}/{day_range}"

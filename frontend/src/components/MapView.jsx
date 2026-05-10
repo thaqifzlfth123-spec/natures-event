@@ -66,16 +66,16 @@ const icons = {
     iconAnchor: [12, 24],
     popupAnchor: [0, -24],
   }),
-  // Custom icon for NASA FIRMS satellite-detected fire hotspots
+  // Custom icon for NASA FIRMS satellite-detected fire hotspots — purple matches system wildfire colour (#a855f7)
   wildfire_firms: L.divIcon({
     className: 'custom-marker',
     html: `
-      <div class="sonar-pulse" style="background: rgba(255,100,0,0.3)"></div>
+      <div class="sonar-pulse" style="background: rgba(168,85,247,0.3)"></div>
       <div style="
         width:12px; height:12px; border-radius:50%;
-        background: radial-gradient(circle, #ff6600, #ff2200);
-        border: 2px solid rgba(255,200,0,0.9);
-        box-shadow: 0 0 10px #ff4400, 0 0 20px rgba(255,100,0,0.5);
+        background: radial-gradient(circle, #c084fc, #a855f7);
+        border: 2px solid rgba(216,180,254,0.9);
+        box-shadow: 0 0 10px #a855f7, 0 0 20px rgba(168,85,247,0.5);
         position: relative; z-index: 2;
       "></div>`,
     iconSize: [12, 12],
