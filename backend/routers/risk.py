@@ -108,7 +108,7 @@ async def get_historical_hazards(location: str):
     # For this implementation, we generate deterministic realistic data based on the location string.
     random.seed(location)
     years = ["2022", "2023", "2024", "2025"]
-    
+
     # Malaysia-specific hazard baseline (Flood is most common)
     return {
         "location": location,
@@ -132,3 +132,106 @@ async def get_historical_hazards(location: str):
         ],
         "rainfall": [random.randint(150, 400) for _ in range(12)] # Monthly average
     }
+
+
+@router.get("/live-location-data")
+async def get_live_location_data(
+    lat: float,
+    lon: float,
+    location: str = "Unknown",
+):
+    """
+    Fetches real 12-month monthly precipitation totals from Open-Meteo (free, no API key).
+    Also returns deterministic hazard frequency trends for the charting panel.
+    Falls back to seed-based rainfall if Open-Meteo is unavailable.
+    """
+    import random
+    import httpx
+    from datetime import date, timedelta
+
+    random.seed(location)
+    years = ["2022", "2023", "2024", "2025"]
+    hazards = [
+        {
+            "name": "Flood",
+            "data": [random.randint(10, 15), random.randint(12, 20), random.randint(15, 25), random.randint(20, 35)],
+            "color": "#00d4ff"
+        },
+        {
+            "name": "Monsoon",
+            "data": [random.randint(20, 30), random.randint(22, 32), random.randint(18, 28), random.randint(25, 30)],
+            "color": "#d4a843"
+        },
+        {
+            "name": "Wildfire",
+            "data": [random.randint(2, 8), random.randint(5, 12), random.randint(3, 10), random.randint(8, 15)],
+            "color": "#a855f7"
+        }
+    ]
+
+    # --- Open-Meteo Historical Archive: daily precipitation → aggregate by month ---
+    # Docs: https://open-meteo.com/en/docs/historical-weather-api
+    # The archive endpoint only supports DAILY variables; we sum them per calendar month.
+    # Free, no API key required.
+    today = date.today()
+    # Go back 13 months to guarantee we have 12 full calendar months
+    start_date = (today.replace(day=1) - timedelta(days=395)).strftime("%Y-%m-%d")
+    end_date = today.strftime("%Y-%m-%d")
+
+    rainfall = [random.randint(150, 400) for _ in range(12)]  # seed-based fallback
+    rainfall_source = "baseline"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://archive-api.open-meteo.com/v1/archive",
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "daily": "precipitation_sum",
+                    "timezone": "Asia/Kuala_Lumpur",
+                },
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                daily_dates = data.get("daily", {}).get("time", [])
+                daily_precip = data.get("daily", {}).get("precipitation_sum", [])
+
+                if daily_dates and daily_precip:
+                    # Aggregate daily values into calendar months
+                    from collections import defaultdict
+                    monthly_totals = defaultdict(float)
+                    for date_str, val in zip(daily_dates, daily_precip):
+                        if val is not None:
+                            month_key = date_str[:7]  # "YYYY-MM"
+                            monthly_totals[month_key] += val
+
+                    # Sort and take the last 12 complete months
+                    sorted_months = sorted(monthly_totals.keys())
+                    last_12 = sorted_months[-12:] if len(sorted_months) >= 12 else sorted_months
+                    agg = [round(monthly_totals[m], 1) for m in last_12]
+
+                    if agg:
+                        # Pad to 12 if needed (edge case: very short window)
+                        while len(agg) < 12:
+                            agg.insert(0, 0.0)
+                        rainfall = agg
+                        rainfall_source = "open-meteo"
+                        logger.info(f"[Open-Meteo] Live rainfall ({lat},{lon}): {rainfall}")
+            else:
+                logger.warning(f"[Open-Meteo] Returned HTTP {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"[Open-Meteo] Fetch failed, using baseline: {e}")
+
+    return {
+        "location": location,
+        "lat": lat,
+        "lon": lon,
+        "years": years,
+        "hazards": hazards,
+        "rainfall": rainfall,
+        "rainfall_source": rainfall_source,
+    }
+

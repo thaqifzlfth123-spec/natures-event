@@ -207,7 +207,16 @@ async def get_firms_wildfires():
 
 
 @router.get("/advisory")
-async def get_strategic_advisory(lang: str = "en"):
+async def get_strategic_advisory(
+    lang: str = "en",
+    location: str = None,
+    lat: float = None,
+    lon: float = None,
+):
+    """
+    Generates a tactical SITREP. Accepts optional location context to focus
+    the report on the user's currently monitored area.
+    """
     db = get_db()
     if not db:
         return {"advisory": "Strategic advisory offline." if lang == "en" else "Penasihat strategik luar talian."}
@@ -215,11 +224,13 @@ async def get_strategic_advisory(lang: str = "en"):
     try:
         docs = db.collection("news_archive").order_by("timestamp", direction="DESCENDING").limit(10).stream()
         news_items = [{"text": d.to_dict().get("text"), "tag": d.to_dict().get("tag")} for d in docs]
-        
+
         if not news_items:
             return {"advisory": "No active intelligence reports found." if lang == "en" else "Tiada laporan perisikan ditemui."}
 
-        advisory_text = await get_strategic_advisory_text(news_items, lang)
+        advisory_text = await get_strategic_advisory_text(
+            news_items, lang, location=location, lat=lat, lon=lon
+        )
         return {"advisory": advisory_text}
     except Exception as e:
         logger.error(f"Advisory Generation Failed: {e}")

@@ -206,20 +206,31 @@ async def get_chatbot_stream(message: str):
         except Exception as e:
             logger.warning(f"Weather data fetch failed: {e}")
 
-    system_prompt = f"""You are a National Emergency Assistant for Malaysia. 
-    Use the following official NADMA guidelines to answer the user's questions. 
-    
-    [OFFICIAL GUIDELINES CONTEXT]
+    system_prompt = f"""You are VAI — an expert National Emergency and Survival Assistant for Malaysia.
+
+    AUTHORITY HIERARCHY (follow in this order):
+    1. PRIMARY SOURCE — NADMA Official Guidelines (use for major Malaysian disasters: floods, landslides, earthquakes, haze):
+    [OFFICIAL NADMA GUIDELINES]
     {rag_context}
-    [END CONTEXT]
-    
-    [LIVE SENSOR/WEATHER DATA]
+    [END NADMA GUIDELINES]
+
+    2. SECONDARY SOURCE — General international survival, first-aid, and emergency preparedness knowledge.
+       Use this tier ONLY for questions not covered by NADMA (e.g., "how to use a fire extinguisher",
+       "how to treat a burn", "what to do during a chemical spill", "how to perform CPR").
+       Answer these helpfully and concisely — do NOT refuse them.
+
+    [LIVE SENSOR / WEATHER DATA]
     {live_weather_data}
-    * If the user asks if there is a flood/emergency in a location, use this live weather data to answer.
-    * If precipitation/rain is low and there is no severe risk, concisely answer NO. DO NOT list emergency numbers or evacuation rules if the area is safe. Just tell them it is currently safe.
+    * If the user asks about flood/emergency status in a location, use this live data to answer directly.
+    * If precipitation is low and risk is minimal, simply confirm the area is currently safe.
+      Do NOT recite emergency numbers or evacuation procedures if the area is safe.
     [END SENSOR DATA]
-    
-    CRITICAL TRANSLATION RULE: You must precisely match the language of the user's prompt. If they speak English, reply strictly in English. If they speak Bahasa Melayu, reply strictly in Bahasa Melayu. Do not cross languages. STRICT RULE: Do NOT use Chinese characters (Hanzi). Use only English or Malay. Provide helpful, concise safety advice."""
+
+    RESPONSE RULES:
+    - Match the user's language EXACTLY: English → English only, Bahasa Melayu → Malay only.
+    - NEVER use Chinese characters (Hanzi). Use only English or Malay.
+    - Be concise, direct, and actionable. Avoid bureaucratic filler.
+    - For life-threatening situations, always recommend contacting emergency services (999 / Bomba 994)."""
 
     try:
         full_prompt = f"{system_prompt}\n\nUser question: {message}"
@@ -284,32 +295,51 @@ def _parse_image_response(text: str):
 # ============================================================
 # 4. STRATEGIC SITREP — Powered by Gemini 1.5 Flash
 # ============================================================
-async def get_strategic_advisory_text(news_items: list, lang: str = "en") -> str:
+async def get_strategic_advisory_text(
+    news_items: list,
+    lang: str = "en",
+    location: str = None,
+    lat: float = None,
+    lon: float = None,
+) -> str:
     """
-    Synthesizes multiple news items into a single mission SITREP.
+    Synthesizes news items into a single mission SITREP.
+    When a location is provided, the SITREP focuses on that specific area.
     """
     client, is_vertex = get_gemini_client()
     if not client:
         return "Intelligence stream offline. Manual monitoring required." if lang == "en" else "Aliran perisikan luar talian. Pemantauan manual diperlukan."
 
     news_context = "\n".join([f"- {item['tag']}: {item['text']}" for item in news_items])
-    
+
+    # Build location context block — injected only when available
+    if location:
+        coord_str = f" (coordinates: {lat:.4f}, {lon:.4f})" if lat is not None and lon is not None else ""
+        location_context = f"""
+    PRIORITY FOCUS AREA: {location}{coord_str}
+    The user is actively monitoring this location. Prioritize any intelligence that is
+    geographically relevant to {location} or its surrounding region.
+    If no news items are directly relevant to {location}, summarize the nearest active
+    threat and note the current status of the priority area."""
+    else:
+        location_context = "    FOCUS: General Malaysia-wide threat overview."
+
     prompt = f"""
     You are the Senior Intelligence Officer for Guardian Elite National Disaster Platform.
-    Synthesize the following recent situation reports into a single, high-density tactical SITREP (Situation Report).
-    
-    IMPORTANT: Focus EXCLUSIVELY on the geographic context of MALAYSIA. Ignore any international data points that are not relevant to the local Malaysian context.
-    
+    Synthesize the following situation reports into a single tactical SITREP.
+
+    {location_context}
+
     NEWS FEED:
     {news_context}
-    
+
     RESPONSE REQUIREMENTS:
     1. Language: {lang}
-    2. Format: Single paragraph, max 250 characters.
+    2. Format: Single paragraph, max 280 characters.
     3. Tone: Professional, mission-critical, authoritative.
-    4. Content: Highlight active threats in Malaysia and immediate responder priority.
+    4. Content: Highlight active threats and responder priority for the focus area.
     5. NO CHINESE: Never use Chinese characters (Hanzi).
-    
+
     Output exactly the SITREP text, no preamble.
     """
 

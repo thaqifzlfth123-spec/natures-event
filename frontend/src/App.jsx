@@ -380,7 +380,7 @@ export default function App() {
       />
 
       {/* ── DASHBOARD BODY (Vertically Resizable Top/Bottom Groups) ── */}
-      <StrategicAdvisory />
+      <StrategicAdvisory location={sharedLocation} userCoords={userCoords} />
       <div className="dashboard-body" ref={dashBodyRef}>
 
         {/* ── TOP GROUP: Community Incidents | Map | ChatBot ── */}
@@ -486,6 +486,7 @@ export default function App() {
                 riskData={sharedRiskData}
                 loading={loadingRisk}
                 activeFilter={activeFilter}
+                userCoords={userCoords}
               />
             </ErrorBoundary>
           </div>

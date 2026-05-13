@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Wind, Thermometer, Droplets } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchHistoricalHazards } from '../services/api';
+import { fetchHistoricalHazards, fetchLiveLocationData } from '../services/api';
 
 function PlotlyChart({ data, layout }) {
   const containerRef = useRef(null);
@@ -38,19 +38,48 @@ function MetricCard({ icon: Icon, label, value, color }) {
   );
 }
 
-export default function LocationData({ location, riskData, loading, activeFilter }) {
+// userCoords: { lat, lon } from App.jsx — enables live Open-Meteo rainfall data.
+// When absent, falls back to deterministic seed-based data.
+export default function LocationData({ location, riskData, loading, activeFilter, userCoords = null }) {
   const { language, t } = useLanguage();
   const [histData, setHistData] = useState(null);
+  const [rainfallSource, setRainfallSource] = useState('baseline'); // 'open-meteo' | 'baseline'
 
   const isValidLocation = useMemo(() => !!location?.trim(), [location]);
 
   useEffect(() => {
-    if (isValidLocation) {
-      fetchHistoricalHazards(location).then(setHistData).catch(console.error);
-    } else {
+    if (!isValidLocation) {
       setHistData(null);
+      setRainfallSource('baseline');
+      return;
     }
-  }, [location, isValidLocation]);
+
+    const lat = userCoords?.lat;
+    const lon = userCoords?.lon;
+
+    if (lat != null && lon != null) {
+      // Prefer live data when we have coordinates
+      fetchLiveLocationData(lat, lon, location)
+        .then(data => {
+          if (data) {
+            setHistData(data);
+            setRainfallSource(data.rainfall_source || 'open-meteo');
+          } else {
+            // fetchLiveLocationData returned null (network error) — fall back
+            return fetchHistoricalHazards(location).then(d => {
+              setHistData(d);
+              setRainfallSource('baseline');
+            });
+          }
+        })
+        .catch(console.error);
+    } else {
+      // No coordinates — use location-string endpoint
+      fetchHistoricalHazards(location)
+        .then(data => { setHistData(data); setRainfallSource('baseline'); })
+        .catch(console.error);
+    }
+  }, [location, isValidLocation, userCoords]);
 
   const hazardChartData = useMemo(() => {
     const years = histData?.years || ['2022', '2023', '2024', '2025'];
@@ -120,7 +149,19 @@ export default function LocationData({ location, riskData, loading, activeFilter
           <PlotlyChart data={hazardChartData} layout={{ barmode: 'group' }} />
         </div>
         <div className="chart-container">
-          <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{t('regionalRainfall')}</div>
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{t('regionalRainfall')}</span>
+            <span style={{
+              fontSize: 8,
+              padding: '1px 5px',
+              borderRadius: 3,
+              background: rainfallSource === 'open-meteo' ? 'rgba(0,212,255,0.15)' : 'rgba(100,100,100,0.2)',
+              color: rainfallSource === 'open-meteo' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+              letterSpacing: 0.5,
+            }}>
+              {rainfallSource === 'open-meteo' ? 'LIVE · OPEN-METEO' : 'BASELINE'}
+            </span>
+          </div>
           <PlotlyChart data={rainfallData} layout={{}} />
         </div>
         <div className="metric-cards">

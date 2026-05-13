@@ -153,11 +153,19 @@ export async function fetchExternalHazards() {
 
 /**
  * Fetches AI-generated Strategic Situation Report (SITREP)
- * @param {string} lang - 'en' or 'bm'
+ * @param {string} lang       - 'en' or 'bm'
+ * @param {string} location   - Active location name (e.g. "Johor Bahru")
+ * @param {number|null} lat   - Latitude from GPS or map click
+ * @param {number|null} lon   - Longitude from GPS or map click
  */
-export async function getStrategicAdvisory(lang = 'en') {
+export async function getStrategicAdvisory(lang = 'en', location = null, lat = null, lon = null) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/advisory?lang=${lang}`);
+    const params = new URLSearchParams({ lang });
+    if (location) params.append('location', location);
+    if (lat !== null) params.append('lat', lat);
+    if (lon !== null) params.append('lon', lon);
+
+    const res = await fetch(`${API_BASE_URL}/api/advisory?${params.toString()}`);
     if (!res.ok) throw new Error("Strategic Advisory API returned error");
     return await res.json();
   } catch (error) {
@@ -167,7 +175,7 @@ export async function getStrategicAdvisory(lang = 'en') {
 }
 
 // -----------------------------------------------------------------------------
-// 9. HISTORICAL HAZARDS — GET /api/historical-hazards
+// 9. HISTORICAL HAZARDS — GET /api/historical-hazards (location-string only)
 // -----------------------------------------------------------------------------
 export async function fetchHistoricalHazards(location) {
   try {
@@ -177,5 +185,26 @@ export async function fetchHistoricalHazards(location) {
   } catch (err) {
     console.error("fetchHistoricalHazards failed:", err);
     throw err;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 10. LIVE LOCATION DATA — GET /api/live-location-data
+//     Requires lat/lon. Returns real Open-Meteo monthly precipitation + hazard trends.
+//     Falls back to seed-based data server-side if Open-Meteo is unavailable.
+// -----------------------------------------------------------------------------
+export async function fetchLiveLocationData(lat, lon, location = '') {
+  try {
+    const params = new URLSearchParams({
+      lat,
+      lon,
+      ...(location ? { location } : {}),
+    });
+    const res = await fetch(`${API_BASE_URL}/api/live-location-data?${params.toString()}`);
+    if (!res.ok) throw new Error(`Live Location Data error: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('fetchLiveLocationData failed:', err);
+    return null; // Caller should fall back to fetchHistoricalHazards
   }
 }
