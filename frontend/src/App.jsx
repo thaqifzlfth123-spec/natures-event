@@ -395,7 +395,11 @@ export default function App() {
             style={!isMobile ? { width: leftWidth, flexShrink: 0 } : undefined}
           >
             <RiskGauges />
-            <SensorGrid nearbyHazards={nearbyHazards} />
+            <SensorGrid
+              nearbyHazards={nearbyHazards}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
             <NewsFeed reports={liveReports} />
           </div>
 

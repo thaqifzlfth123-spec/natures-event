@@ -87,6 +87,32 @@ const icons = {
 // Malaysia-focused disaster pins (No longer mocked, filled dynamically)
 const markers = [];
 
+// ── EVACUATION SHELTER LOCATIONS (Static / mock — replace with API later) ──
+// Each object: { id, name, pos: [lat, lon], capacity, contact }
+const SHELTER_LOCATIONS = [
+  {
+    id: 'shelter-1',
+    name: 'Dewan Orang Ramai Gombak',
+    pos: [3.2170, 101.6860],
+    capacity: 500,
+    contact: '03-6189 6000',
+  },
+  {
+    id: 'shelter-2',
+    name: 'Stadium Larkin Johor Bahru',
+    pos: [1.4980, 103.7580],
+    capacity: 1200,
+    contact: '07-224 4444',
+  },
+  {
+    id: 'shelter-3',
+    name: 'Pusat Komuniti Kota Bharu',
+    pos: [6.1254, 102.2381],
+    capacity: 300,
+    contact: '09-748 5555',
+  },
+];
+
 // Component to fly to searched location or reset view
 function FlyTo({ target }) {
   const map = useMap();
@@ -114,6 +140,8 @@ export default function MapView({
   const [flyTarget, setFlyTarget] = useState(null);
   const [mapMode, setMapMode] = useState('auto'); // 'auto' | 'street'
   const [isScanning, setIsScanning] = useState(false);
+  // Shelter layer toggle — independent of the disaster type filter
+  const [showShelters, setShowShelters] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportCoords, setReportCoords] = useState(null);
   const [reportType, setReportType] = useState('flood');
@@ -271,6 +299,15 @@ export default function MapView({
         <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
           {t('myLocation')}
         </button>
+        {/* Shelter toggle — independent of the disaster type filter */}
+        <button
+          className={`map-switcher__btn ${showShelters ? 'map-switcher__btn--active' : ''}`}
+          onClick={() => setShowShelters(prev => !prev)}
+          style={{ color: showShelters ? '#00e676' : '', borderColor: showShelters ? '#00e676' : '' }}
+          title="Toggle evacuation shelter locations"
+        >
+          {showShelters ? '⛺ SHELTERS: ON' : '⛺ SHELTERS'}
+        </button>
 
         <button
           className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
@@ -336,8 +373,10 @@ export default function MapView({
             </Marker>
           ))}
 
-        {/* ── NASA FIRMS Near Real-Time Wildfire Layer ── */}
-        {externalMarkers
+        {/* ── NASA FIRMS Near Real-Time Wildfire Layer ──
+             Gate: only shown when filter is 'all' OR 'wildfire'.
+             Strictly hidden for flood, monsoon, earthquake, medical, shelter, access. */}
+        {(activeFilter === 'all' || activeFilter === 'wildfire') && externalMarkers
           .filter(m => m.id && m.id.startsWith('firms-'))
           .filter(m => Array.isArray(m.pos) && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
           .map((m) => (
@@ -365,6 +404,34 @@ export default function MapView({
             </Marker>
           ))
         }
+
+        {/* ── EVACUATION SHELTER LAYER ──
+             Controlled by the '⛺ SHELTERS' toggle button in the toolbar.
+             Independent of the disaster type filter (showShelters is its own state). */}
+        {showShelters && SHELTER_LOCATIONS.map((s) => (
+          <Marker
+            key={s.id}
+            position={s.pos}
+            icon={icons.shelter_pulse}
+          >
+            <Popup>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', minWidth: '200px' }}>
+                <strong style={{ color: '#00e676' }}>⛺ EVACUATION SHELTER</strong>
+                <br />
+                <span style={{ fontWeight: 700, color: '#fff' }}>{s.name}</span>
+                <br />
+                <span style={{ color: '#aaa' }}>Capacity:</span>{' '}
+                <span style={{ color: '#00e676' }}>{s.capacity.toLocaleString()} persons</span>
+                <br />
+                <span style={{ color: '#aaa' }}>Contact:</span> {s.contact}
+                <br />
+                <span style={{ color: '#aaa', fontSize: '9px' }}>
+                  {s.pos[0].toFixed(4)}, {s.pos[1].toFixed(4)}
+                </span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
 
       <div className="map-legend">
