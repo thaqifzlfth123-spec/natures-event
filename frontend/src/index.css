@@ -1459,6 +1459,41 @@ body {
   color: var(--accent-gold);
 }
 
+/* =============================================================================
+   SITREP BANNER — LIGHT MODE OVERRIDES
+   The dark theme uses a hardcoded dark gradient (#1a1a00 → #0d0d0d).
+   In light mode we swap to a warm golden-cream that keeps the gold accent readable.
+   ============================================================================= */
+[data-theme="light"] .sitrep-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%);
+  border-color: rgba(161, 98, 7, 0.4);
+  border-left-color: var(--accent-gold);
+  box-shadow: 0 4px 20px rgba(161, 98, 7, 0.08);
+}
+
+[data-theme="light"] .sitrep-banner__header {
+  background: rgba(202, 138, 4, 0.1);
+  border-bottom-color: rgba(161, 98, 7, 0.25);
+}
+
+[data-theme="light"] .sitrep-banner__title,
+[data-theme="light"] .sitrep-banner__icon {
+  color: #92400e;  /* amber-800 — readable on cream bg */
+}
+
+[data-theme="light"] .sitrep-banner__badge {
+  color: #92400e;
+  border-color: rgba(146, 64, 14, 0.4);
+}
+
+[data-theme="light"] .sitrep-banner__body {
+  color: #1c1917;  /* stone-900 — full contrast on cream */
+}
+
+[data-theme="light"] .sitrep-banner__loading {
+  color: #92400e;
+}
+
 /* ---------- Leaflet Overrides ---------- */
 .leaflet-container {
   background: var(--bg-secondary) !important;
@@ -2184,7 +2219,7 @@ body {
   justify-content: center;
   gap: 4px;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);  /* Fix: was rgba(255,255,255,0.05) — white in light mode */
   background: rgba(13, 17, 23, 0.4);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

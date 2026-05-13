@@ -3,7 +3,10 @@ import { Wind, Thermometer, Droplets } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchHistoricalHazards, fetchLiveLocationData } from '../services/api';
 
-function PlotlyChart({ data, layout }) {
+// config prop allows per-chart override of Plotly's displayModeBar/scrollZoom etc.
+// Default: modebar hidden, no scroll zoom (matches all existing charts).
+// Rainfall chart overrides with scrollZoom + a minimal reset button.
+function PlotlyChart({ data, layout, config = {} }) {
   const containerRef = useRef(null);
   useEffect(() => {
     let cancelled = false;
@@ -19,10 +22,15 @@ function PlotlyChart({ data, layout }) {
         xaxis: { gridcolor: '#1e2a3a', linecolor: '#1e2a3a' },
         yaxis: { gridcolor: '#1e2a3a', linecolor: '#1e2a3a' },
         ...layout,
-      }, { displayModeBar: false, responsive: true });
+      }, {
+        displayModeBar: false,
+        responsive: true,
+        scrollZoom: false,
+        ...config,  // caller overrides come last
+      });
     });
     return () => { cancelled = true; };
-  }, [data, layout]);
+  }, [data, layout, config]);
   return <div ref={containerRef} style={{ width: '100%', minHeight: 120 }} />;
 }
 
@@ -162,7 +170,23 @@ export default function LocationData({ location, riskData, loading, activeFilter
               {rainfallSource === 'open-meteo' ? 'LIVE · OPEN-METEO' : 'BASELINE'}
             </span>
           </div>
-          <PlotlyChart data={rainfallData} layout={{}} />
+          {/* Rainfall chart: scrollZoom enabled + minimal modebar with reset-zoom button */}
+          <PlotlyChart
+            data={rainfallData}
+            layout={{}}
+            config={{
+              scrollZoom: true,
+              displayModeBar: true,
+              modeBarButtonsToRemove: [
+                'toImage', 'sendDataToCloud', 'zoom2d', 'pan2d',
+                'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d',
+                'autoScale2d', 'toggleSpikelines', 'hoverClosestCartesian',
+                'hoverCompareCartesian',
+              ],
+              // Keep only the 'resetScale2d' (home/reset) button so users can always zoom out
+              displaylogo: false,
+            }}
+          />
         </div>
         <div className="metric-cards">
           <MetricCard icon={Wind} label={t('windSpeed')} value={weatherMetrics.windSpeed} />
