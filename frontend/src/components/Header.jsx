@@ -65,7 +65,7 @@ export default function Header({
       </div>
 
       {/* Locations Group Dropdown (Desktop) */}
-      <nav className="header__nav" style={{ position: 'relative', zIndex: 9000 }}>
+      <nav className="header__nav" style={{ position: 'relative', zIndex: 10001 }}>
         <button
           className={`header__nav-btn ${locDropdownOpen ? 'header__nav-btn--active' : ''}`}
           onClick={() => setLocDropdownOpen(!locDropdownOpen)}
@@ -74,7 +74,7 @@ export default function Header({
         </button>
 
         {locDropdownOpen && (
-          <div className="header__dropdown glass" style={{ position: 'absolute', top: '100%', left: 0, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', width: '200px', zIndex: 9000 }}>
+          <div className="header__dropdown glass" style={{ position: 'absolute', top: '100%', left: 0, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', width: '200px', zIndex: 10001 }}>
 
             {/* Regions Submenu */}
             <div style={{ paddingBottom: '5px', borderBottom: '1px solid var(--border-color)' }}>
