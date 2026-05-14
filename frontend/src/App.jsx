@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Header from './components/Header';
-import RiskGauges from './components/RiskGauges';
 import NewsFeed from './components/NewsFeed';
 import LocationData from './components/LocationData';
 import ChatBot from './components/ChatBot';
@@ -388,13 +387,12 @@ export default function App() {
           className="top-group"
           style={!isMobile ? { height: `calc(${topRatio * 100}% - 3px)` } : undefined}
         >
-          {/* Left Panel: Risk Gauges + Community Incidents */}
+          {/* Left Panel: Tactical Menu + Community Incidents */}
           <div
             id="tactical-menu"
             className={`left-sidebar glass scanline ${leftOpen ? 'left-sidebar--open' : ''}`}
             style={!isMobile ? { width: leftWidth, flexShrink: 0 } : undefined}
           >
-            <RiskGauges />
             <SensorGrid
               nearbyHazards={nearbyHazards}
               activeFilter={activeFilter}

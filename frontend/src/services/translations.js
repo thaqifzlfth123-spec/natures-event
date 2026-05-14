@@ -13,18 +13,6 @@ export const translations = {
     highAlert: "HIGH ALERT",
     loginRegister: "LOGIN / REGISTER",
     
-    // Risk Gauges
-    riskGauges: "RISK GAUGES",
-    stress: "STRESS",
-    histFloodRisk: "Historical Flood Risk",
-    monsoonSeverity: "Monsoon Severity Index",
-    seaLevel: "Sea Level Rise (CM)",
-    deforestation: "Local Deforestation Rate",
-    earthquakeProb: "Earthquake Probability",
-    landslideRisk: "Landslide Risk Index",
-    levelHigh: "High",
-    levelMed: "Med",
-    levelLow: "Low",
     levelActive: "Active",
     
     // News Center
@@ -76,8 +64,6 @@ export const translations = {
     monsoon: "Monsoon",
     wildfire: "Wildfire",
     medical: "Medical",
-    shelter: "Shelter",
-    access: "Access",
     
     // Sensor Grid
     sensorGrid: "SENSOR GRID",
@@ -117,18 +103,6 @@ export const translations = {
     highAlert: "AMARAN TINGGI",
     loginRegister: "LOG MASUK / DAFTAR",
     
-    // Risk Gauges
-    riskGauges: "TOLOK RISIKO",
-    stress: "TEKANAN",
-    histFloodRisk: "Risiko Banjir Sejarah",
-    monsoonSeverity: "Indeks Tahap Monsun",
-    seaLevel: "Kenaikan Paras Laut (CM)",
-    deforestation: "Kadar Penebangan Hutan",
-    earthquakeProb: "Kebarangkalian Gempa",
-    landslideRisk: "Indeks Risiko Tanah Runtuh",
-    levelHigh: "Tinggi",
-    levelMed: "Sedrh",
-    levelLow: "Rendah",
     levelActive: "Aktif",
     
     // News Center
@@ -180,8 +154,6 @@ export const translations = {
     monsoon: "Monsun",
     wildfire: "Kebakaran Hutan",
     medical: "Perubatan",
-    shelter: "Perlindungan",
-    access: "Akses",
 
     // Sensor Grid
     sensorGrid: "GRID SENSOR",

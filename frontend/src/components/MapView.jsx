@@ -22,8 +22,6 @@ const COLORS = {
   monsoon: { name: 'gold', hex: '#d4a843' },
   wildfire: { name: 'purple', hex: '#a855f7' },
   medical: { name: 'red', hex: '#ff1744' },
-  shelter: { name: 'green', hex: '#00e676' },
-  access: { name: 'orange', hex: '#ff9f43' },
 };
 
 function createIcon(colorObj, pulse = false) {
@@ -50,15 +48,11 @@ const icons = {
   monsoon: createIcon(COLORS.monsoon),
   wildfire: createIcon(COLORS.wildfire),
   medical: createIcon(COLORS.medical),
-  shelter: createIcon(COLORS.shelter),
-  access: createIcon(COLORS.access),
   earthquake_pulse: createIcon(COLORS.earthquake, true),
   flood_pulse: createIcon(COLORS.flood, true),
   monsoon_pulse: createIcon(COLORS.monsoon, true),
   wildfire_pulse: createIcon(COLORS.wildfire, true),
   medical_pulse: createIcon(COLORS.medical, true),
-  shelter_pulse: createIcon(COLORS.shelter, true),
-  access_pulse: createIcon(COLORS.access, true),
   user: L.divIcon({
     className: 'user-marker',
     html: `<div class="sonar-pulse"></div><div style="width:24px;height:24px;background:#00d4ff;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(0,212,255,0.6);"><div style="width:8px;height:8px;background:#fff;border-radius:50%;transform:rotate(45deg);"></div></div>`,
@@ -89,29 +83,7 @@ const markers = [];
 
 // ── EVACUATION SHELTER LOCATIONS (Static / mock — replace with API later) ──
 // Each object: { id, name, pos: [lat, lon], capacity, contact }
-const SHELTER_LOCATIONS = [
-  {
-    id: 'shelter-1',
-    name: 'Dewan Orang Ramai Gombak',
-    pos: [3.2170, 101.6860],
-    capacity: 500,
-    contact: '03-6189 6000',
-  },
-  {
-    id: 'shelter-2',
-    name: 'Stadium Larkin Johor Bahru',
-    pos: [1.4980, 103.7580],
-    capacity: 1200,
-    contact: '07-224 4444',
-  },
-  {
-    id: 'shelter-3',
-    name: 'Pusat Komuniti Kota Bharu',
-    pos: [6.1254, 102.2381],
-    capacity: 300,
-    contact: '09-748 5555',
-  },
-];
+const SHELTER_LOCATIONS = [];
 
 // Component to fly to searched location or reset view
 function FlyTo({ target }) {
@@ -140,8 +112,6 @@ export default function MapView({
   const [flyTarget, setFlyTarget] = useState(null);
   const [mapMode, setMapMode] = useState('auto'); // 'auto' | 'street'
   const [isScanning, setIsScanning] = useState(false);
-  // Shelter layer toggle — independent of the disaster type filter
-  const [showShelters, setShowShelters] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportCoords, setReportCoords] = useState(null);
   const [reportType, setReportType] = useState('flood');
@@ -299,16 +269,6 @@ export default function MapView({
         <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
           {t('myLocation')}
         </button>
-        {/* Shelter toggle — independent of the disaster type filter */}
-        <button
-          className={`map-switcher__btn ${showShelters ? 'map-switcher__btn--active' : ''}`}
-          onClick={() => setShowShelters(prev => !prev)}
-          style={{ color: showShelters ? '#00e676' : '', borderColor: showShelters ? '#00e676' : '' }}
-          title="Toggle evacuation shelter locations"
-        >
-          {showShelters ? '⛺ SHELTERS: ON' : '⛺ SHELTERS'}
-        </button>
-
         <button
           className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
           onClick={() => setIsReporting(prev => !prev)}
@@ -354,16 +314,6 @@ export default function MapView({
             <Popup autoOpen><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong>{t('searchedLoc')}</strong><br />{flyTarget.coords[0]?.toFixed(4)}, {flyTarget.coords[1]?.toFixed(4)}</div></Popup>
           </Marker>
         )}
-        {evacuationTarget && evacuationTarget.lat && evacuationTarget.lon && flyTarget && Array.isArray(flyTarget.coords) && (
-          <>
-            <Marker position={[evacuationTarget.lat, evacuationTarget.lon]} icon={icons.shelter_pulse}>
-              <Popup autoOpen><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}><strong style={{ color: 'var(--accent-green)' }}>{t('safeZone')}</strong><br />{evacuationTarget.name}</div></Popup>
-            </Marker>
-            <Polyline positions={[flyTarget.coords, [evacuationTarget.lat, evacuationTarget.lon]]} pathOptions={{ color: 'var(--accent-green)', weight: 3, dashArray: '10, 10' }}>
-              <Popup><div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>{t('evacPath')}</div></Popup>
-            </Polyline>
-          </>
-        )}
         {allMarkers
           .filter(m => (activeFilter === 'all' || m.type === activeFilter))
           .filter(m => Array.isArray(m.pos) && m.pos.length === 2 && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
@@ -373,9 +323,9 @@ export default function MapView({
             </Marker>
           ))}
 
-        {/* ── NASA FIRMS Near Real-Time Wildfire Layer ──
+        {/* ── NASA FIRMS: Wildfire Layer ──
              Gate: only shown when filter is 'all' OR 'wildfire'.
-             Strictly hidden for flood, monsoon, earthquake, medical, shelter, access. */}
+             Strictly hidden for other event types. */}
         {(activeFilter === 'all' || activeFilter === 'wildfire') && externalMarkers
           .filter(m => m.id && m.id.startsWith('firms-'))
           .filter(m => Array.isArray(m.pos) && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
@@ -405,33 +355,6 @@ export default function MapView({
           ))
         }
 
-        {/* ── EVACUATION SHELTER LAYER ──
-             Controlled by the '⛺ SHELTERS' toggle button in the toolbar.
-             Independent of the disaster type filter (showShelters is its own state). */}
-        {showShelters && SHELTER_LOCATIONS.map((s) => (
-          <Marker
-            key={s.id}
-            position={s.pos}
-            icon={icons.shelter_pulse}
-          >
-            <Popup>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', minWidth: '200px' }}>
-                <strong style={{ color: '#00e676' }}>⛺ EVACUATION SHELTER</strong>
-                <br />
-                <span style={{ fontWeight: 700, color: '#fff' }}>{s.name}</span>
-                <br />
-                <span style={{ color: '#aaa' }}>Capacity:</span>{' '}
-                <span style={{ color: '#00e676' }}>{s.capacity.toLocaleString()} persons</span>
-                <br />
-                <span style={{ color: '#aaa' }}>Contact:</span> {s.contact}
-                <br />
-                <span style={{ color: '#aaa', fontSize: '9px' }}>
-                  {s.pos[0].toFixed(4)}, {s.pos[1].toFixed(4)}
-                </span>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
       </MapContainer>
 
       <div className="map-legend">
@@ -456,7 +379,6 @@ export default function MapView({
                 <option value="wildfire">{language === 'en' ? 'Wildfire' : 'Kebakaran'}</option>
                 <option value="monsoon">{language === 'en' ? 'Storm/Monsoon' : 'Ribut/Monsun'}</option>
                 <option value="medical">{language === 'en' ? 'Medical Emergency' : 'Kecemasan Perubatan'}</option>
-                <option value="access">{language === 'en' ? 'Road Blocked' : 'Jalan Terhalang'}</option>
               </select>
               <select 
                 className="report-overlay__select" 

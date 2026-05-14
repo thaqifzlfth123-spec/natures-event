@@ -381,35 +381,6 @@ body {
   color: var(--accent-cyan);
 }
 
-/* ---------- Risk Gauge Bar ---------- */
-.risk-gauge {
-  margin-bottom: 10px;
-}
-.risk-gauge__label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  font-size: 10px;
-}
-.risk-gauge__name {
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.risk-gauge__value {
-  font-weight: 600;
-}
-.risk-gauge__bar {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-input);
-  overflow: hidden;
-}
-.risk-gauge__fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.5s ease;
-}
 
 /* ---------- Header Bar ---------- */
 .header {
@@ -1874,17 +1845,6 @@ body {
     height: 8px;
   }
 
-  /* --- Risk Gauges --- */
-  .risk-gauge {
-    margin-bottom: 12px;
-  }
-  .risk-gauge__label {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-  .risk-gauge__bar {
-    height: 6px;
-  }
 
   /* --- News Feed --- */
   .news-item {
