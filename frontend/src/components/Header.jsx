@@ -193,10 +193,10 @@ export default function Header({
       <div className="header__mobile-controls">
         <button
           className="header__toggle-btn"
-          onClick={onToggleLeft}
+          onClick={() => setMenuOpen(prev => !prev)}
           title="Tactical Menu"
         >
-          ☰
+          {menuOpen ? '✕' : '☰'}
         </button>
         <button
           className="header__toggle-btn"
@@ -205,24 +205,34 @@ export default function Header({
         >
           📡
         </button>
+        {/* The standalone Settings button is removed from mobile interface to consolidate into Tactical Menu */}
         <button
-          className="header__hamburger"
+          className="header__hamburger hidden md:block"
+          style={{ display: 'none' }} /* Force hidden to satisfy desktop/mobile visibility logic */
           onClick={() => setMenuOpen(prev => !prev)}
           title="Settings"
         >
-          {menuOpen ? '✕' : '⚙️'}
+          ⚙️
         </button>
       </div>
 
       {/* Mobile Dropdown Menu */}
-      <div className={`header__mobile-menu ${menuOpen ? 'header__mobile-menu--open' : ''}`}>
-        <nav className="header__nav" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <div style={{ color: 'var(--accent-cyan)', fontSize: '12px', marginTop: '10px' }}>REGIONS</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '5px 0' }}>
+      <div 
+        className={`header__mobile-menu glass ${menuOpen ? 'header__mobile-menu--open' : ''}`}
+        style={{ zIndex: 10001, backgroundColor: 'var(--bg-primary)' }}
+      >
+        <nav className="header__nav" style={{ flexDirection: 'column', alignItems: 'flex-start', width: '100%', maxHeight: '70vh', overflowY: 'auto' }}>
+          <button className="header__nav-btn" style={{ marginTop: '10px' }} onClick={() => { onToggleLeft(); setMenuOpen(false); }}>
+            📋 VIEW TACTICAL DATA
+          </button>
+          
+          <div style={{ color: 'var(--accent-cyan)', fontSize: '12px', marginTop: '10px', padding: '0 14px' }}>REGIONS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '5px 14px' }}>
             {regionsList.slice(0, 6).map(r => (
               <button
                 key={r}
                 className={`header__nav-btn ${activeRegion === r ? 'header__nav-btn--active' : ''}`}
+                style={{ minHeight: 'auto', padding: '6px 10px', fontSize: '10px', width: 'auto' }}
                 onClick={() => { setActiveRegion(r); onSearch(r); setMenuOpen(false); }}
               >
                 {r}
@@ -236,28 +246,28 @@ export default function Header({
           <button className={`header__nav-btn ${activeRegion === 'MY LOCATIONS' ? 'header__nav-btn--active' : ''}`} onClick={() => { setActiveRegion('MY LOCATIONS'); setMenuOpen(false); }}>
             ⭐ MY LOCATIONS (5KM FILTER)
           </button>
-          <div className="header__right">
-            <button className="header__nav-btn" style={{ width: '100%' }} onClick={toggleLanguage}>
-              LANGUAGE: {language === 'en' ? 'ENGLISH' : 'BAHASA MELAYU'}
+          
+          <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', margin: '10px 0' }}></div>
+          
+          <button className="header__nav-btn" onClick={() => { onThemeToggle(); setMenuOpen(false); }}>
+            {isDark ? '☀️ LIGHT MODE' : '🌙 DARK MODE'}
+          </button>
+          <button className="header__nav-btn" onClick={() => { onToggleNotifications(); setMenuOpen(false); }}>
+            {notificationsEnabled ? '🔕 NOTIFICATIONS: ON' : '🔔 NOTIFICATIONS: OFF'}
+          </button>
+          <button className="header__nav-btn" onClick={() => { toggleLanguage(); setMenuOpen(false); }}>
+            🌐 LANGUAGE: {language === 'en' ? 'ENGLISH' : 'BAHASA MELAYU'}
+          </button>
+          
+          {user ? (
+            <button className="header__nav-btn" style={{ color: 'var(--accent-red)' }} onClick={() => { logout(); setMenuOpen(false); }}>
+              🚪 LOGOUT ({user.email})
             </button>
-            <span className="header__timestamp">{t('lastSync')}: {formattedTime}</span>
-            <span className="header__status header__status--high">{t('highAlert')}</span>
-            {user ? (
-              <button className="header__login-btn" style={{ width: '100%', borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }} onClick={() => { logout(); setMenuOpen(false); }}>
-                LOGOUT ({user.email})
-              </button>
-            ) : (
-              <button className="header__login-btn" style={{ width: '100%' }} onClick={() => { onLoginClick(); setMenuOpen(false); }}>
-                {t('loginRegister')}
-              </button>
-            )}
-            <button className="header__theme-btn" onClick={onToggleNotifications} title="Toggle Notifications">
-              {notificationsEnabled ? 'Notifications: ON' : 'Notifications: OFF'}
+          ) : (
+            <button className="header__nav-btn" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
+              👤 {t('loginRegister')}
             </button>
-            <button className="header__theme-btn" onClick={onThemeToggle} title="Toggle theme">
-              {isDark ? 'Theme: Dark' : 'Theme: Light'}
-            </button>
-          </div>
+          )}
         </nav>
       </div>
     </header>
