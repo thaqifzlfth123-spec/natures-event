@@ -8,6 +8,14 @@ export default function AlertSummary({ onSelectLocation, firmsMarkers = [] }) {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
+  // Mobile viewport detection for scroll cap
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 1024);
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     async function fetchNews() {
       try {
@@ -56,7 +64,10 @@ export default function AlertSummary({ onSelectLocation, firmsMarkers = [] }) {
           {loading ? 'CONNECTING...' : t('liveFeed')}
         </span>
       </div>
-      <div className="panel-body">
+      <div 
+        className="panel-body"
+        style={isMobileView ? { maxHeight: '220px', overflowY: 'auto' } : {}}
+      >
         {/* [FIX: Phase 3 - Option A] Render combined FIRMS + official news — up to 10 items */}
         {displayNews.map((n, i) => {
           const hasLink = n.url && n.url !== '#';

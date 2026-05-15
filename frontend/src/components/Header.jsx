@@ -136,8 +136,8 @@ export default function Header({
         </button>
         {(searchExpanded || isSearchPinned) && (
           <div 
-            className="header__search-bar fade-in flex-shrink absolute z-[9999] md:relative md:z-auto shadow-2xl md:shadow-none"
-            style={isMobile ? { left: '-10px', top: '45px', right: 'auto', width: '85vw', maxWidth: '300px' } : { maxWidth: '28rem' }}
+            className="header__search-bar fade-in flex-shrink fixed md:relative z-[9999] md:z-auto shadow-2xl md:shadow-none"
+            style={isMobile ? { left: '50%', top: '65px', transform: 'translateX(-50%)', width: '90vw', maxWidth: '400px' } : { maxWidth: '28rem' }}
           >
             <input
               className="header__search-input w-full min-w-0"
