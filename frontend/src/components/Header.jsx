@@ -237,7 +237,7 @@ export default function Header({
           
           <div style={{ color: 'var(--accent-cyan)', fontSize: '12px', marginTop: '10px', padding: '0 14px' }}>REGIONS</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '5px 14px' }}>
-            {regionsList.slice(0, 6).map(r => (
+            {regionsList.map(r => (
               <button
                 key={r}
                 className={`header__nav-btn ${activeRegion === r ? 'header__nav-btn--active' : ''}`}
@@ -247,7 +247,7 @@ export default function Header({
                 {r}
               </button>
             ))}
-            <span style={{ fontSize: '10px', alignSelf: 'center', color: '#889' }}>...</span>
+
           </div>
           <button className="header__nav-btn" onClick={() => { setActiveRegion('DISTRICT'); onGetLocation(); setMenuOpen(false); }}>
             📍 FIND MY DISTRICT

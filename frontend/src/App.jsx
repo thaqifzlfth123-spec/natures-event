@@ -156,9 +156,33 @@ export default function App() {
     console.log('Logged in:', userData.email);
   };
 
-  // UNIFIED SEARCH HANDLER
+  // UNIFIED SEARCH HANDLER — with geocoding validation gate
   const handleUnifiedSearch = async (loc, lat = null, lon = null) => {
     if (!loc) return;
+
+    // ── GEOCODING GATE ──
+    // If lat/lon are already provided (GPS path), coordinates are confirmed valid — skip validation.
+    // Otherwise, verify the search string resolves to a real place before touching any state.
+    if (lat === null || lon === null) {
+      try {
+        const geoQuery = loc.toLowerCase().includes('malaysia') ? loc : `${loc}, Malaysia`;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(geoQuery)}&limit=1`
+        );
+        const geoResults = await res.json();
+        if (!geoResults || geoResults.length === 0) {
+          // Zero results — halt execution, no downstream state updates
+          addToast(`Location not found: "${loc}". Please enter a valid Malaysian location.`, 'error');
+          return;
+        }
+      } catch (geoErr) {
+        console.error('Geocoding validation failed:', geoErr);
+        addToast('Unable to validate location. Check your connection.', 'error');
+        return;
+      }
+    }
+
+    // Location is confirmed valid — proceed with state updates and risk analysis
     setSharedLocation(loc);
     setLoadingRisk(true);
     setEvacuationTarget(null);
