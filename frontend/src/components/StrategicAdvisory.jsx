@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 export default function StrategicAdvisory({ location = null, userCoords = null }) {
   const [advisory, setAdvisory] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isBodyCollapsed, setIsBodyCollapsed] = useState(false);
   const { language, t } = useLanguage();
 
   useEffect(() => {
@@ -47,19 +48,42 @@ export default function StrategicAdvisory({ location = null, userCoords = null }
         <div className="sitrep-banner__badge telemetry">
           {badgeLabel}
         </div>
+        {/* Collapse/Expand chevron toggle — matches gold accent theme */}
+        <button
+          onClick={() => setIsBodyCollapsed(prev => !prev)}
+          title={isBodyCollapsed ? 'Expand SitRep' : 'Collapse SitRep'}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(212,168,67,0.4)',
+            color: 'var(--accent-gold)',
+            cursor: 'pointer',
+            borderRadius: '2px',
+            padding: '3px 8px',
+            fontSize: '11px',
+            lineHeight: 1,
+            marginLeft: '8px',
+            transition: 'transform 0.25s ease',
+            transform: isBodyCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+            display: 'inline-block',
+          }}
+        >
+          &#x25BC;
+        </button>
       </div>
-      <div className="sitrep-banner__body">
-        {loading ? (
-          <div className="sitrep-banner__loading">
-             <span className="spinner" />
-             <span className="telemetry" style={{ marginLeft: '10px' }}>{t('sitrepLoading')}</span>
-          </div>
-        ) : (
-          <div className="sitrep-banner__content">
-            {advisory}
-          </div>
-        )}
-      </div>
+      {!isBodyCollapsed && (
+        <div className="sitrep-banner__body">
+          {loading ? (
+            <div className="sitrep-banner__loading">
+               <span className="spinner" />
+               <span className="telemetry" style={{ marginLeft: '10px' }}>{t('sitrepLoading')}</span>
+            </div>
+          ) : (
+            <div className="sitrep-banner__content">
+              {advisory}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

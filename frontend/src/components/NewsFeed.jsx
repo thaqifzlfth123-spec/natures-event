@@ -65,6 +65,14 @@ function formatTimestamp(ts) {
 export default function NewsFeed({ reports = [] }) {
   const [displayReports, setDisplayReports] = useState([]);
 
+  // Mobile viewport detection — mirrors App.jsx pattern
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 1024);
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     // 1. FILTERING: Remove 'Unknown' types and entries with no data
     const filtered = reports.filter(r => {
@@ -85,7 +93,14 @@ export default function NewsFeed({ reports = [] }) {
           {displayReports.length > 0 ? 'LIVE FEED' : 'MONITORING'}
         </span>
       </div>
-      <div className="panel-body" style={{ padding: '0 12px' }}>
+      <div
+        className="panel-body"
+        style={{
+          padding: '0 12px',
+          // Mobile: cap to ~3 news items (~220px) with internal scroll
+          ...(isMobileView ? { maxHeight: '220px', overflowY: 'auto' } : {})
+        }}
+      >
         {displayReports.length > 0 ? (
           displayReports.map((r, i) => {
             const { full } = formatTimestamp(r.timestamp);
