@@ -251,7 +251,7 @@ export default function MapView({
           <span>🗺️ MAP TOOLS</span>
           <span>{switcherOpen ? '✕' : '▼'}</span>
         </button>
-        <div className={`${switcherOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-1 flex-wrap justify-end`}>
+        <div className={`${switcherOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-1 flex-wrap justify-end text-center rounded-xl overflow-hidden backdrop-blur-md shadow-lg p-1 bg-black/20 md:bg-transparent`}>
           <button
             className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
             onClick={() => { setMapMode('auto'); setShowRadar(false); }}
