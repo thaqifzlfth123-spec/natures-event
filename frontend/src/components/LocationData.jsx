@@ -3,35 +3,73 @@ import { Wind, Thermometer, Droplets } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchHistoricalHazards, fetchLiveLocationData } from '../services/api';
 
-// config prop allows per-chart override of Plotly's displayModeBar/scrollZoom etc.
-// Default: modebar hidden, no scroll zoom (matches all existing charts).
-// Rainfall chart overrides with scrollZoom + a minimal reset button.
+// Chart Configuration Update for Plotly.js
+const interactiveLayout = {
+  dragmode: 'pan', // 'pan' is highly recommended for mobile touch friendliness over 'zoom' box
+  xaxis: { 
+    fixedrange: false, // Enable X-axis zooming and panning
+    constrain: 'domain', // Prevents zooming out beyond the original data limits
+    gridcolor: '#1e2a3a', 
+    linecolor: '#1e2a3a'
+  },
+  yaxis: { 
+    fixedrange: false, // Enable Y-axis zooming and panning
+    constrain: 'domain', // Prevents zooming out beyond the original data limits
+    gridcolor: '#1e2a3a', 
+    linecolor: '#1e2a3a'
+  }
+};
+
+const interactiveConfig = {
+  scrollZoom: true, // Enables desktop mouse wheel and mobile pinch-to-zoom
+  displayModeBar: true, // Show the top-right toolbar for reset buttons
+  displaylogo: false,
+  // We explicitly KEEP 'zoom2d', 'pan2d', 'zoomIn2d', 'zoomOut2d', and 'resetScale2d'
+  modeBarButtonsToRemove: [
+    'toImage', 'sendDataToCloud', 'select2d', 'lasso2d', 
+    'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'
+  ],
+};
+
+// Responsive Interaction Wrapper for Plotly.js
 function PlotlyChart({ data, layout, config = {} }) {
   const containerRef = useRef(null);
+
   useEffect(() => {
     let cancelled = false;
     import('plotly.js-dist-min').then((Plotly) => {
       if (cancelled || !containerRef.current) return;
       const PlotlyLib = Plotly.default || Plotly;
+      
       PlotlyLib.newPlot(containerRef.current, data, {
         height: 120,
         margin: { t: 20, b: 30, l: 35, r: 10 },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         font: { family: 'JetBrains Mono', size: 9, color: '#8899aa' },
-        xaxis: { gridcolor: '#1e2a3a', linecolor: '#1e2a3a' },
-        yaxis: { gridcolor: '#1e2a3a', linecolor: '#1e2a3a' },
-        ...layout,
+        ...interactiveLayout, // Inject the interactive layout axes
+        ...layout,            // Allow specific chart overrides
       }, {
-        displayModeBar: false,
         responsive: true,
-        scrollZoom: false,
-        ...config,  // caller overrides come last
+        ...interactiveConfig, // Inject the interactive zoom/pan config
+        ...config,            // Allow specific config overrides
       });
     });
     return () => { cancelled = true; };
   }, [data, layout, config]);
-  return <div ref={containerRef} style={{ width: '100%', minHeight: 120 }} />;
+
+  return (
+    <div 
+      ref={containerRef} 
+      style={{ 
+        width: '100%', 
+        minHeight: 120, 
+        // CRITICAL FIX: This CSS property captures pinch/pan gestures for the chart 
+        // instead of scrolling the mobile browser page.
+        touchAction: 'none' 
+      }} 
+    />
+  );
 }
 
 function MetricCard({ icon: Icon, label, value, color }) {
@@ -170,23 +208,7 @@ export default function LocationData({ location, riskData, loading, activeFilter
               {rainfallSource === 'open-meteo' ? 'LIVE · OPEN-METEO' : 'BASELINE'}
             </span>
           </div>
-          {/* Rainfall chart: scrollZoom enabled + minimal modebar with reset-zoom button */}
-          <PlotlyChart
-            data={rainfallData}
-            layout={{}}
-            config={{
-              scrollZoom: true,
-              displayModeBar: true,
-              modeBarButtonsToRemove: [
-                'toImage', 'sendDataToCloud', 'zoom2d', 'pan2d',
-                'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d',
-                'autoScale2d', 'toggleSpikelines', 'hoverClosestCartesian',
-                'hoverCompareCartesian',
-              ],
-              // Keep only the 'resetScale2d' (home/reset) button so users can always zoom out
-              displaylogo: false,
-            }}
-          />
+          <PlotlyChart data={rainfallData} />
         </div>
         <div className="metric-cards">
           <MetricCard icon={Wind} label={t('windSpeed')} value={weatherMetrics.windSpeed} />
