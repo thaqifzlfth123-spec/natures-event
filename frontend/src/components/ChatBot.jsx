@@ -87,15 +87,21 @@ export default function ChatBot() {
         <div ref={msgEndRef} />
       </div>
 
-      <div className="chat-input">
-        <input
-          className="chat-input__field"
+      <div className="chat-input flex items-end">
+        <textarea
+          className="chat-input__field resize-none overflow-y-auto max-h-[120px] min-h-[44px] w-full"
+          rows={1}
           placeholder={t('vaiPlaceholder')}
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
         />
-        <button className="chat-input__send" onClick={handleSend} disabled={loading}>
+        <button className="chat-input__send ml-2" onClick={handleSend} disabled={loading}>
           {t('vaiSend')}
         </button>
       </div>

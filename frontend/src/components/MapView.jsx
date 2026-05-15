@@ -111,6 +111,7 @@ export default function MapView({
   const { language, t } = useLanguage();
   const [flyTarget, setFlyTarget] = useState(null);
   const [mapMode, setMapMode] = useState('auto'); // 'auto' | 'street'
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportCoords, setReportCoords] = useState(null);
@@ -242,43 +243,52 @@ export default function MapView({
       {isScanning && <div className="radar-scan" />}
 
       {/* Map Mode Switcher — FIX #1: Proper toggle (clicking active = back to auto) */}
-      <div className="map-switcher">
-        <button
-          className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
-          onClick={() => { setMapMode('auto'); setShowRadar(false); }}
+      <div className="map-switcher flex flex-col md:flex-row items-end md:items-start z-[1000] right-2 top-2 max-w-[95vw]">
+        <button 
+          className="map-switcher__btn md:hidden mb-1 w-full flex justify-between items-center px-3 py-2 text-[10px] sm:text-xs border border-[var(--border-color)] bg-[var(--bg-card)]" 
+          onClick={() => setSwitcherOpen(prev => !prev)}
         >
-          {isDark ? t('mapDark') : t('mapLight') || 'LIGHT'}
+          <span>🗺️ MAP TOOLS</span>
+          <span>{switcherOpen ? '✕' : '▼'}</span>
         </button>
-        <button
-          className={`map-switcher__btn ${mapMode === 'street' ? 'map-switcher__btn--active' : ''}`}
-          onClick={() => { setMapMode(mapMode === 'street' ? 'auto' : 'street'); setShowRadar(false); }}
-        >
-          {t('mapStreet')}
-        </button>
-        <button
-          className={`map-switcher__btn ${showRadar ? 'map-switcher__btn--active' : ''}`}
-          onClick={() => setShowRadar(prev => !prev)}
-        >
-          {showRadar ? 'LIVE: ON' : t('mapWeather')}
-        </button>
+        <div className={`${switcherOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-1 flex-wrap justify-end`}>
+          <button
+            className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
+            onClick={() => { setMapMode('auto'); setShowRadar(false); }}
+          >
+            {isDark ? t('mapDark') : t('mapLight') || 'LIGHT'}
+          </button>
+          <button
+            className={`map-switcher__btn ${mapMode === 'street' ? 'map-switcher__btn--active' : ''}`}
+            onClick={() => { setMapMode(mapMode === 'street' ? 'auto' : 'street'); setShowRadar(false); }}
+          >
+            {t('mapStreet')}
+          </button>
+          <button
+            className={`map-switcher__btn ${showRadar ? 'map-switcher__btn--active' : ''}`}
+            onClick={() => setShowRadar(prev => !prev)}
+          >
+            {showRadar ? 'LIVE: ON' : t('mapWeather')}
+          </button>
 
-        {/* NEW DASHBOARD BUTTONS */}
-        <button className="map-switcher__btn" onClick={onGetLocation} title={t('findDistrict')}>
-          {t('findDistrict')}
-        </button>
-        <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
-          {t('myLocation')}
-        </button>
-        <button
-          className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
-          onClick={() => setIsReporting(prev => !prev)}
-          style={{ background: isReporting ? 'var(--accent-red)' : '' }}
-        >
-          {isReporting ? t('mapCancel') : t('mapReport')}
-        </button>
-        <button className="map-switcher__btn" onClick={handleResetClick} title={t('mapResetBtn')}>
-          {t('mapResetBtn')}
-        </button>
+          {/* NEW DASHBOARD BUTTONS */}
+          <button className="map-switcher__btn" onClick={onGetLocation} title={t('findDistrict')}>
+            {t('findDistrict')}
+          </button>
+          <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
+            {t('myLocation')}
+          </button>
+          <button
+            className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
+            onClick={() => setIsReporting(prev => !prev)}
+            style={{ background: isReporting ? 'var(--accent-red)' : '' }}
+          >
+            {isReporting ? t('mapCancel') : t('mapReport')}
+          </button>
+          <button className="map-switcher__btn" onClick={handleResetClick} title={t('mapResetBtn')}>
+            {t('mapResetBtn')}
+          </button>
+        </div>
       </div>
 
       {/* Map search has been relocated to the Header */}

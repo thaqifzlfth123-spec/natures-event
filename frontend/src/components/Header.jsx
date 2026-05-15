@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header({
-  onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark,
+  onLoginClick, onThemeToggle, onToggleLeft, onToggleRight, isDark, isMobile,
   onSearch, onReset, activeRegion, setActiveRegion, onGetLocation, onSaveLocation,
   notificationsEnabled, onToggleNotifications, savedLocations, isHighAlert
 }) {
@@ -41,8 +41,13 @@ export default function Header({
     if (typeof onSearch === 'function') {
       onSearch(searchVal);
     }
-    // Keep it pinned if searched
-    setIsSearchPinned(true);
+    // Keep it pinned if searched, unless mobile
+    if (!isMobile) {
+      setIsSearchPinned(true);
+    } else {
+      setIsSearchPinned(false);
+      setSearchExpanded(false);
+    }
   };
 
   const handleSearchReset = () => {
@@ -130,9 +135,13 @@ export default function Header({
           🔍
         </button>
         {(searchExpanded || isSearchPinned) && (
-          <div className="header__search-bar fade-in">
+          <div 
+            className="header__search-bar fade-in flex-shrink"
+            style={isMobile ? { left: '-10px', right: 'auto', width: '85vw', maxWidth: '300px' } : { maxWidth: '28rem' }}
+          >
             <input
-              className="header__search-input"
+              className="header__search-input w-full min-w-0"
+              style={{ minWidth: 0, flex: 1 }}
               placeholder={t('mapSearchPlaceholder')}
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
@@ -140,10 +149,10 @@ export default function Header({
               autoFocus
             />
             <button className="header__search-go" onClick={handleSearchSubmit}>{t('mapSearchBtn')}</button>
-            <button className="header__search-go" title="GPS Search" style={{ background: 'transparent', color: 'var(--accent-cyan)' }} onClick={onGetLocation}>📍</button>
+            <button className="header__search-go" title="GPS Search" style={{ background: 'transparent', color: 'var(--accent-cyan)' }} onClick={() => { onGetLocation(); if (isMobile) { setIsSearchPinned(false); setSearchExpanded(false); } }}>📍</button>
             {searchVal && (
               <>
-                <button className="header__search-go" title="Save Location" style={{ background: 'transparent', color: 'var(--accent-gold)' }} onClick={onSaveLocation}>⭐</button>
+                <button className="header__search-go" title="Save Location" style={{ background: 'transparent', color: 'var(--accent-gold)' }} onClick={() => { onSaveLocation(); if (isMobile) { setIsSearchPinned(false); setSearchExpanded(false); } }}>⭐</button>
                 <button className="header__search-clear" onClick={handleSearchReset}>✕</button>
               </>
             )}
