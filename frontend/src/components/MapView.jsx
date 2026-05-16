@@ -20,7 +20,7 @@ const COLORS = {
   earthquake: { name: 'red', hex: '#ff4757' },
   flood: { name: 'cyan', hex: '#00d4ff' },
   monsoon: { name: 'gold', hex: '#d4a843' },
-  wildfire: { name: 'purple', hex: '#a855f7' },
+  high_temp: { name: 'purple', hex: '#a855f7' },
   medical: { name: 'red', hex: '#ff1744' },
 };
 
@@ -46,12 +46,12 @@ const icons = {
   earthquake: createIcon(COLORS.earthquake),
   flood: createIcon(COLORS.flood),
   monsoon: createIcon(COLORS.monsoon),
-  wildfire: createIcon(COLORS.wildfire),
+  high_temp: createIcon(COLORS.high_temp),
   medical: createIcon(COLORS.medical),
   earthquake_pulse: createIcon(COLORS.earthquake, true),
   flood_pulse: createIcon(COLORS.flood, true),
   monsoon_pulse: createIcon(COLORS.monsoon, true),
-  wildfire_pulse: createIcon(COLORS.wildfire, true),
+  high_temp_pulse: createIcon(COLORS.high_temp, true),
   medical_pulse: createIcon(COLORS.medical, true),
   user: L.divIcon({
     className: 'user-marker',
@@ -60,8 +60,8 @@ const icons = {
     iconAnchor: [12, 24],
     popupAnchor: [0, -24],
   }),
-  // Custom icon for NASA FIRMS satellite-detected fire hotspots — purple matches system wildfire colour (#a855f7)
-  wildfire_firms: L.divIcon({
+  // Custom icon for NASA FIRMS satellite-detected high temp hotspots — purple matches system high temp colour (#a855f7)
+  high_temp_firms: L.divIcon({
     className: 'custom-marker',
     html: `
       <div class="sonar-pulse" style="background: rgba(168,85,247,0.3)"></div>
@@ -333,21 +333,21 @@ export default function MapView({
             </Marker>
           ))}
 
-        {/* ── NASA FIRMS: Wildfire Layer ──
-             Gate: only shown when filter is 'all' OR 'wildfire'.
+        {/* ── NASA FIRMS: High Temp Layer ──
+             Gate: only shown when filter is 'all' OR 'high_temp'.
              Strictly hidden for other event types. */}
-        {(activeFilter === 'all' || activeFilter === 'wildfire') && externalMarkers
+        {(activeFilter === 'all' || activeFilter === 'high_temp') && externalMarkers
           .filter(m => m.id && m.id.startsWith('firms-'))
           .filter(m => Array.isArray(m.pos) && !isNaN(m.pos[0]) && !isNaN(m.pos[1]))
           .map((m) => (
             <Marker
               key={m.id}
               position={m.pos}
-              icon={icons.wildfire_firms}
+              icon={icons.high_temp_firms}
             >
               <Popup>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', minWidth: '180px' }}>
-                  <strong style={{ color: '#ff6600' }}>🔥 NASA FIRMS WILDFIRE</strong>
+                  <strong style={{ color: '#ff6600' }}>🔥 NASA FIRMS HIGH TEMP</strong>
                   <br />
                   <span style={{ color: '#aaa' }}>Source:</span> VIIRS SNPP NRT
                   <br />
@@ -386,7 +386,7 @@ export default function MapView({
             <div className="fade-in">
               <select className="report-overlay__select" value={reportType} onChange={e => setReportType(e.target.value)}>
                 <option value="flood">{language === 'en' ? 'Flood' : 'Banjir'}</option>
-                <option value="wildfire">{language === 'en' ? 'Wildfire' : 'Kebakaran'}</option>
+                <option value="high_temp">{language === 'en' ? 'High Temp' : 'Kawasan Suhu Tinggi'}</option>
                 <option value="monsoon">{language === 'en' ? 'Storm/Monsoon' : 'Ribut/Monsun'}</option>
                 <option value="medical">{language === 'en' ? 'Medical Emergency' : 'Kecemasan Perubatan'}</option>
               </select>

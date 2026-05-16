@@ -43,7 +43,7 @@ export default function App() {
   // Shared coordinate state — set when a news item is clicked to pan the map
   const [focusCoords, setFocusCoords] = useState(null);
 
-  // NASA FIRMS near-real-time wildfire markers for Malaysia
+  // NASA FIRMS near-real-time high temp markers for Malaysia
   const [firmsMarkers, setFirmsMarkers] = useState([]);
 
   // NEW FEATURE STATES
@@ -336,7 +336,7 @@ export default function App() {
     });
   }, []);
 
-  // ── NASA FIRMS: Fetch near-real-time wildfires for Malaysia ──
+  // ── NASA FIRMS: Fetch near-real-time high temp for Malaysia ──
   useEffect(() => {
     const fetchFirms = async () => {
       try {
@@ -348,16 +348,16 @@ export default function App() {
           const mapped = data.map((f, i) => ({
             id: `firms-${i}-${f.lat}-${f.lon}`,
             pos: [f.lat, f.lon],
-            type: 'wildfire',
+            type: 'high_temp',
             severity: f.severity || 'Medium',
-            label: `🔥 FIRMS Wildfire | FRP: ${f.frp} MW | ${f.acq_date} ${f.acq_time}`,
+            label: `🔥 FIRMS High Temp | FRP: ${f.frp} MW | ${f.acq_date} ${f.acq_time}`,
             lat: f.lat,
             lon: f.lon,
           }));
           setFirmsMarkers(mapped);
         }
       } catch (err) {
-        console.error('[FIRMS] Failed to load wildfire data:', err);
+        console.error('[FIRMS] Failed to load high temp data:', err);
       }
     };
 
@@ -489,7 +489,7 @@ export default function App() {
             style={!isMobile ? { width: bottomLeftWidth, flexShrink: 0 } : undefined}
           >
             <ErrorBoundary fallback="News Feed unavailable">
-              {/* [FIX: Phase 3 - Option A] firmsMarkers passed as prop so FIRMS wildfires appear in the news feed */}
+              {/* [FIX: Phase 3 - Option A] firmsMarkers passed as prop so FIRMS high temps appear in the news feed */}
               <AlertSummary
                 onSelectLocation={(lat, lon) => setFocusCoords({ lat, lon })}
                 firmsMarkers={firmsMarkers}

@@ -62,7 +62,7 @@ export const translations = {
     earthquake: "Earthquake",
     flood: "Flood",
     monsoon: "Monsoon",
-    wildfire: "Wildfire",
+    high_temp: "High Temp",
     medical: "Medical",
     
     // Sensor Grid
@@ -152,7 +152,7 @@ export const translations = {
     earthquake: "Gempa Bumi",
     flood: "Banjir",
     monsoon: "Monsun",
-    wildfire: "Kebakaran Hutan",
+    high_temp: "Kawasan Suhu Tinggi",
     medical: "Perubatan",
 
     // Sensor Grid

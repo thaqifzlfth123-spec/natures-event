@@ -127,7 +127,7 @@ async def get_external_hazards():
         return []
 
 
-@router.get("/firms-wildfires", summary="NASA FIRMS Near Real-Time Wildfires in Malaysia")
+@router.get("/firms-wildfires", summary="NASA FIRMS Near Real-Time High Temp in Malaysia")
 async def get_firms_wildfires():
     import httpx
     import csv
@@ -179,7 +179,7 @@ async def get_firms_wildfires():
             except (ValueError, KeyError):
                 continue  # Skip malformed rows
 
-        logger.info(f"[FIRMS] Fetched {len(fire_points)} wildfire points for Malaysia.")
+        logger.info(f"[FIRMS] Fetched {len(fire_points)} high temp points for Malaysia.")
 
     except httpx.HTTPStatusError as e:
         logger.error(f"[FIRMS] HTTP error: {e.response.status_code} - {e.response.text[:200]}")

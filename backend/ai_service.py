@@ -126,7 +126,7 @@ async def check_hazard_risk(location: str, weather_data: str):
     Given the location {location} and current weather: {weather_data},
     determine the primary natural hazard risk (e.g., Flood, Heatwave, Drought, Storm, Forest Burning, or None)
     and the overall risk level (Low, Medium, High). 
-    * Note: For Forest Burning risk (Wildfire), emulate the MET Malaysia FDRS (Fire Danger Rating System) by carefully analyzing if the temperature is high (>32 C), humidity is very low (<60%), and precipitation is 0mm. Explain the risk factor briefly.
+    * Note: For Forest Burning risk (High Temp), emulate the MET Malaysia FDRS (Fire Danger Rating System) by carefully analyzing if the temperature is high (>32 C), humidity is very low (<60%), and precipitation is 0mm. Explain the risk factor briefly.
     * IMPORTANT: In your Explanation, you MUST BOLD every numerical weather metric (e.g., **32 C**, **85% humidity**, **10 kph**, **1.2mm precipitation**). This is for user readability.
     
     CRITICAL RULE: The weather data contains a [CONFIRMED LOCATION]. You MUST ONLY discuss that exact location name in your explanation. NEVER use Chinese characters (Hanzi). Use only English or Malay names. Do NOT hallucinate or assume Kuala Lumpur unless the confirmed location is explicitly Kuala Lumpur. Keep your explanation focused on the confirmed location.

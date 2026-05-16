@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLiveNews } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
-// [FIX: Phase 3 - Option A] Accept firmsMarkers prop from App.jsx to merge wildfire alerts into this feed
+// [FIX: Phase 3 - Option A] Accept firmsMarkers prop from App.jsx to merge high temp alerts into this feed
 export default function AlertSummary({ onSelectLocation, firmsMarkers = [] }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +41,11 @@ export default function AlertSummary({ onSelectLocation, firmsMarkers = [] }) {
   }, [t]);
 
   // [FIX: Phase 3 - Option A] Convert firmsMarkers into news-feed-compatible objects
-  // and prepend them to the official news list so wildfires appear at the top
+  // and prepend them to the official news list so high temps appear at the top
   const firmsNewsItems = firmsMarkers.map((m) => ({
     id: m.id,
     time: m.label?.split('|')[2]?.trim() || 'FIRMS NRT',
-    text: `🔥 Wildfire detected near ${m.pos[0].toFixed(3)}°N, ${m.pos[1].toFixed(3)}°E — ${m.label}`,
+    text: `🔥 High Temp detected near ${m.pos[0].toFixed(3)}°N, ${m.pos[1].toFixed(3)}°E — ${m.label}`,
     url: '#',
     tag: 'NASA FIRMS',
     tagColor: m.severity === 'Critical' ? '#ff0055' : m.severity === 'High' ? '#ff4757' : '#ff9f43',

@@ -125,7 +125,7 @@ async def get_historical_hazards(location: str):
                 "color": "#d4a843"
             },
             {
-                "name": "Wildfire",
+                "name": "High Temp",
                 "data": [random.randint(2, 8), random.randint(5, 12), random.randint(3, 10), random.randint(8, 15)],
                 "color": "#a855f7"
             }
@@ -163,7 +163,7 @@ async def get_live_location_data(
             "color": "#d4a843"
         },
         {
-            "name": "Wildfire",
+            "name": "High Temp",
             "data": [random.randint(2, 8), random.randint(5, 12), random.randint(3, 10), random.randint(8, 15)],
             "color": "#a855f7"
         }
