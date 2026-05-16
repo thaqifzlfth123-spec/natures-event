@@ -251,7 +251,7 @@ export default function MapView({
           <span>🗺️ MAP TOOLS</span>
           <span>{switcherOpen ? '✕' : '▼'}</span>
         </button>
-        <div className={`${switcherOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-1 flex-wrap justify-end text-center rounded-xl overflow-hidden backdrop-blur-md shadow-lg p-1 bg-black/20 md:bg-transparent`}>
+        <div className={`${switcherOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-2 flex-wrap justify-center items-center text-center rounded-xl overflow-hidden backdrop-blur-md shadow-[0_0_15px_rgba(0,212,255,0.15)] p-2 bg-black/40 border border-[var(--border-color)]`}>
           <button
             className={`map-switcher__btn ${mapMode === 'auto' ? 'map-switcher__btn--active' : ''}`}
             onClick={() => { setMapMode('auto'); setShowRadar(false); }}
@@ -271,13 +271,6 @@ export default function MapView({
             {showRadar ? 'LIVE: ON' : t('mapWeather')}
           </button>
 
-          {/* NEW DASHBOARD BUTTONS */}
-          <button className="map-switcher__btn" onClick={onGetLocation} title={t('findDistrict')}>
-            {t('findDistrict')}
-          </button>
-          <button className="map-switcher__btn" onClick={() => setActiveRegion('MY LOCATIONS')} title={t('myLocation')}>
-            {t('myLocation')}
-          </button>
           <button
             className={`map-switcher__btn ${isReporting ? 'map-switcher__btn--active' : ''}`}
             onClick={() => setIsReporting(prev => !prev)}
